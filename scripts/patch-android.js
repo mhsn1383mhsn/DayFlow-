@@ -12,7 +12,8 @@ fs.mkdirSync(javaDir, { recursive: true });
 let xml = fs.readFileSync(manifestPath, 'utf8');
 const permissions = [
   'POST_NOTIFICATIONS','SCHEDULE_EXACT_ALARM','VIBRATE','WAKE_LOCK','RECEIVE_BOOT_COMPLETED',
-  'READ_CALENDAR','WRITE_CALENDAR','USE_FULL_SCREEN_INTENT'
+  'READ_CALENDAR','WRITE_CALENDAR','USE_FULL_SCREEN_INTENT',
+  'FOREGROUND_SERVICE','FOREGROUND_SERVICE_MEDIA_PLAYBACK'
 ];
 for (const p of permissions) {
   if (!xml.includes(`android.permission.${p}`)) {
@@ -28,6 +29,10 @@ if (!xml.includes('DayFlowAlarmReceiver')) {
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <service
+            android:name=".DayFlowAlarmService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
     </application>`);
 }
 fs.writeFileSync(manifestPath, xml);
@@ -291,25 +296,27 @@ public class DayFlowNativePlugin extends Plugin {
     private void createChannel(String id, String name, String kind) {
         if (Build.VERSION.SDK_INT < 26) return;
         NotificationManager nm = (NotificationManager)getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        Uri sound = selectedSound(kind);
-        Uri fallback = "alarm".equals(kind) ? Settings.System.DEFAULT_ALARM_ALERT_URI : Settings.System.DEFAULT_NOTIFICATION_URI;
-        Uri use = sound != null ? sound : fallback;
-        AudioAttributes attrs = new AudioAttributes.Builder()
-                .setUsage("alarm".equals(kind) ? AudioAttributes.USAGE_ALARM : AudioAttributes.USAGE_NOTIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build();
-        int importance = "alarm".equals(kind) ? NotificationManager.IMPORTANCE_MAX : NotificationManager.IMPORTANCE_HIGH;
+        boolean isAlarm = "alarm".equals(kind);
+        int importance = isAlarm ? NotificationManager.IMPORTANCE_HIGH : NotificationManager.IMPORTANCE_HIGH;
         NotificationChannel channel = new NotificationChannel(id, name, importance);
         channel.enableVibration(true);
         channel.setVibrationPattern(new long[]{0,350,180,350,180,700});
         channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
         channel.enableLights(true);
-        channel.setLightColor(0xFF178BFF);
-        channel.setBypassDnd("alarm".equals(kind));
-        try {
-            channel.setSound(use, attrs);
-        } catch (Exception e) {
-            channel.setSound(fallback, attrs);
+        channel.setLightColor(isAlarm ? 0xFFFFB020 : 0xFF178BFF);
+        channel.setBypassDnd(isAlarm);
+        if (isAlarm) {
+            // Alarm audio is played by DayFlowAlarmService (MediaPlayer). Keep channel silent to avoid short system blip.
+            channel.setSound(null, null);
+        } else {
+            Uri sound = selectedSound(kind);
+            Uri fallback = Settings.System.DEFAULT_NOTIFICATION_URI;
+            Uri use = sound != null ? sound : fallback;
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            try { channel.setSound(use, attrs); } catch (Exception e) { channel.setSound(fallback, attrs); }
         }
         nm.createNotificationChannel(channel);
     }
@@ -444,19 +451,13 @@ public class DayFlowNativePlugin extends Plugin {
     }
 
     @PluginMethod public void stopAlarmSound(PluginCall call) {
-        try { DayFlowAlarmReceiver.stopSound(getContext()); } catch (Exception ignored) {}
+        try { DayFlowAlarmService.stop(getContext()); } catch (Exception ignored) {}
         call.resolve();
     }
 
     @PluginMethod public void playTestSound(PluginCall call) {
         try {
-            // Fire a one-shot test via the same player path as real alarms
-            DayFlowAlarmReceiver.stopSound(getContext());
-            android.content.Intent i = new android.content.Intent(getContext(), DayFlowAlarmReceiver.class);
-            i.setAction("${pkg}.ALARM");
-            i.putExtra("alarm_id", "test-sound");
-            i.putExtra("alarm_title", "تست صدا");
-            getContext().sendBroadcast(i);
+            DayFlowAlarmService.start(getContext(), "تست صدا");
             call.resolve();
         } catch (Exception e) { call.reject("پخش تست ممکن نشد", e); }
     }
@@ -490,33 +491,225 @@ public class DayFlowNativePlugin extends Plugin {
 }
 `);
 
-// ---- Alarm receiver ----
-fs.writeFileSync(path.join(javaDir, 'DayFlowAlarmReceiver.java'), `package ${pkg};
+// ---- Alarm foreground service (reliable looping sound + sticky notification) ----
+fs.writeFileSync(path.join(javaDir, 'DayFlowAlarmService.java'), `package ${pkg};
 
-import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
 
 import androidx.core.app.NotificationCompat;
 
-public class DayFlowAlarmReceiver extends BroadcastReceiver {
+public class DayFlowAlarmService extends Service {
+    public static final String ACTION_START = "${pkg}.ALARM_START";
+    public static final String ACTION_STOP = "${pkg}.ALARM_STOP";
     private static final String PREF = "dayflow_native";
-    private static MediaPlayer player;
-    private static PowerManager.WakeLock wakeLock;
+    private static final int NOTIF_ID = 71001;
+    private MediaPlayer player;
+    private PowerManager.WakeLock wakeLock;
 
+    @Override public IBinder onBind(Intent intent) { return null; }
+
+    @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+            shutdown();
+            return START_NOT_STICKY;
+        }
+        String title = intent != null ? intent.getStringExtra("alarm_title") : null;
+        if (title == null || title.isEmpty()) title = "زنگ";
+        ensureSilentAlarmChannel();
+        Notification n = buildNotification(title);
+        if (Build.VERSION.SDK_INT >= 29) {
+            startForeground(NOTIF_ID, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        } else {
+            startForeground(NOTIF_ID, n);
+        }
+        startPlayer();
+        return START_STICKY;
+    }
+
+    private void ensureSilentAlarmChannel() {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        // Delete and recreate without sound so only MediaPlayer is heard (no short system blip)
+        try { nm.deleteNotificationChannel("dayflow-alarms"); } catch (Exception ignored) {}
+        NotificationChannel ch = new NotificationChannel("dayflow-alarms", "زنگ‌های DayFlow", NotificationManager.IMPORTANCE_HIGH);
+        ch.enableVibration(true);
+        ch.setVibrationPattern(new long[]{0, 400, 200, 400, 200, 800});
+        ch.setSound(null, null);
+        ch.enableLights(true);
+        ch.setLightColor(0xFFFFB020);
+        ch.setBypassDnd(true);
+        ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        nm.createNotificationChannel(ch);
+    }
+
+    private Uri resolveAlarmUri() {
+        SharedPreferences sp = getSharedPreferences(PREF, MODE_PRIVATE);
+        try {
+            String local = sp.getString("alarmSoundLocal", "");
+            if (local != null && !local.isEmpty()) {
+                java.io.File f = new java.io.File(local);
+                if (f.exists() && f.length() > 0) return Uri.fromFile(f);
+            }
+            String s = sp.getString("alarmSound", "");
+            if (s != null && !s.isEmpty()) return Uri.parse(s);
+        } catch (Exception ignored) {}
+        return Settings.System.DEFAULT_ALARM_ALERT_URI;
+    }
+
+    private void startPlayer() {
+        stopPlayerOnly();
+        try {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "dayflow:alarmsvc");
+            wakeLock.acquire(10 * 60 * 1000L);
+
+            Uri uri = resolveAlarmUri();
+            player = new MediaPlayer();
+            player.setDataSource(this, uri);
+            if (Build.VERSION.SDK_INT >= 21) {
+                player.setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build());
+            } else {
+                player.setAudioStreamType(AudioManager.STREAM_ALARM);
+            }
+            player.setLooping(true);
+            player.setVolume(1f, 1f);
+            player.setOnErrorListener((mp, what, extra) -> {
+                stopPlayerOnly();
+                return true;
+            });
+            player.prepare();
+            player.start();
+        } catch (Exception e) {
+            stopPlayerOnly();
+            // last resort: default alarm URI
+            try {
+                player = new MediaPlayer();
+                player.setDataSource(this, Settings.System.DEFAULT_ALARM_ALERT_URI);
+                if (Build.VERSION.SDK_INT >= 21) {
+                    player.setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
+                } else {
+                    player.setAudioStreamType(AudioManager.STREAM_ALARM);
+                }
+                player.setLooping(true);
+                player.prepare();
+                player.start();
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void stopPlayerOnly() {
+        try {
+            if (player != null) {
+                if (player.isPlaying()) player.stop();
+                player.release();
+            }
+        } catch (Exception ignored) {}
+        player = null;
+        try {
+            if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        } catch (Exception ignored) {}
+        wakeLock = null;
+    }
+
+    private Notification buildNotification(String title) {
+        Intent open = new Intent(this, MainActivity.class);
+        open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        open.putExtra("stop_alarm_sound", true);
+        PendingIntent pi = PendingIntent.getActivity(this, 71002, open,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        Intent stop = new Intent(this, DayFlowAlarmService.class);
+        stop.setAction(ACTION_STOP);
+        PendingIntent stopPi = PendingIntent.getService(this, 71003, stop,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        return new NotificationCompat.Builder(this, "dayflow-alarms")
+                .setSmallIcon(R.drawable.ic_stat_dayflow)
+                .setContentTitle("⏰ " + title)
+                .setContentText("DayFlow — برای خاموش کردن لمس کن")
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .setOnlyAlertOnce(true)
+                .setSound(null)
+                .setContentIntent(pi)
+                .addAction(0, "خاموش کردن", stopPi)
+                .setVibrate(new long[]{0, 400, 200, 400})
+                .build();
+    }
+
+    private void shutdown() {
+        stopPlayerOnly();
+        try {
+            stopForeground(true);
+        } catch (Exception ignored) {}
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            nm.cancel(NOTIF_ID);
+        } catch (Exception ignored) {}
+        stopSelf();
+    }
+
+    @Override public void onDestroy() {
+        stopPlayerOnly();
+        super.onDestroy();
+    }
+
+    public static void start(Context c, String title) {
+        Intent i = new Intent(c, DayFlowAlarmService.class);
+        i.setAction(ACTION_START);
+        i.putExtra("alarm_title", title == null ? "زنگ" : title);
+        if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i);
+        else c.startService(i);
+    }
+
+    public static void stop(Context c) {
+        try {
+            Intent i = new Intent(c, DayFlowAlarmService.class);
+            i.setAction(ACTION_STOP);
+            c.startService(i);
+        } catch (Exception e) {
+            try {
+                c.stopService(new Intent(c, DayFlowAlarmService.class));
+            } catch (Exception ignored) {}
+        }
+    }
+}
+`);
+
+// ---- Alarm receiver (starts/stops the service) ----
+fs.writeFileSync(path.join(javaDir, 'DayFlowAlarmReceiver.java'), `package ${pkg};
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+
+public class DayFlowAlarmReceiver extends BroadcastReceiver {
     private static PendingIntent pending(Context c, String id, String title) {
         Intent i = new Intent(c, DayFlowAlarmReceiver.class);
         i.setAction("${pkg}.ALARM");
@@ -528,14 +721,14 @@ public class DayFlowAlarmReceiver extends BroadcastReceiver {
 
     public static void cancel(Context c, String id) {
         try {
-            AlarmManager am = (AlarmManager)c.getSystemService(Context.ALARM_SERVICE);
+            AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
             am.cancel(pending(c, id, ""));
         } catch (Exception ignored) {}
     }
 
     public static void schedule(Context c, String id, String title, long at) {
         if (at <= System.currentTimeMillis()) return;
-        AlarmManager am = (AlarmManager)c.getSystemService(Context.ALARM_SERVICE);
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         PendingIntent pi = pending(c, id, title);
         try {
             if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) {
@@ -551,140 +744,25 @@ public class DayFlowAlarmReceiver extends BroadcastReceiver {
         }
     }
 
-    /** Stop looping alarm sound (called when user opens app or dismisses). */
-    public static synchronized void stopSound(Context c) {
-        try {
-            if (player != null) {
-                if (player.isPlaying()) player.stop();
-                player.release();
-            }
-        } catch (Exception ignored) {}
-        player = null;
-        try {
-            if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
-        } catch (Exception ignored) {}
-        wakeLock = null;
-    }
-
-    private static Uri alarmUri(Context c) {
-        try {
-            String s = c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("alarmSound", "");
-            if (s != null && !s.isEmpty()) {
-                // Prefer local copy if present
-                String local = c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("alarmSoundLocal", "");
-                if (local != null && !local.isEmpty()) {
-                    java.io.File f = new java.io.File(local);
-                    if (f.exists() && f.length() > 0) return Uri.fromFile(f);
-                }
-                return Uri.parse(s);
-            }
-        } catch (Exception ignored) {}
-        return Settings.System.DEFAULT_ALARM_ALERT_URI;
-    }
-
-    private static synchronized void startSound(Context c) {
-        stopSound(c);
-        try {
-            PowerManager pm = (PowerManager)c.getSystemService(Context.POWER_SERVICE);
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "dayflow:alarm");
-            wakeLock.acquire(5 * 60 * 1000L);
-
-            Uri uri = alarmUri(c);
-            player = new MediaPlayer();
-            player.setDataSource(c, uri);
-            if (Build.VERSION.SDK_INT >= 21) {
-                player.setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build());
-            } else {
-                player.setAudioStreamType(AudioManager.STREAM_ALARM);
-            }
-            player.setLooping(true);
-            player.setVolume(1f, 1f);
-            player.prepare();
-            player.start();
-        } catch (Exception e) {
-            // fallback: system ringtone API
-            try {
-                android.media.Ringtone rt = RingtoneManager.getRingtone(c, alarmUri(c));
-                if (rt != null) {
-                    if (Build.VERSION.SDK_INT >= 28) rt.setLooping(true);
-                    rt.play();
-                }
-            } catch (Exception ignored) {}
-        }
+    /** Compatibility for older plugin calls */
+    public static void stopSound(Context c) {
+        DayFlowAlarmService.stop(c);
     }
 
     @Override public void onReceive(Context context, Intent intent) {
+        if (intent == null) return;
         String act = intent.getAction();
         if ("${pkg}.STOP_SOUND".equals(act)) {
-            stopSound(context);
-            try {
-                NotificationManager nm = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-                nm.cancelAll();
-            } catch (Exception ignored) {}
+            DayFlowAlarmService.stop(context);
             return;
         }
         if (!"${pkg}.ALARM".equals(act)) return;
-        String id = intent.getStringExtra("alarm_id");
         String title = intent.getStringExtra("alarm_title");
-        startSound(context);
-        show(context, id, title);
-    }
-
-    private void show(Context c, String id, String title) {
-        // Ensure alarm channel exists
-        try {
-            if (Build.VERSION.SDK_INT >= 26) {
-                NotificationManager nm0 = (NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
-                if (nm0.getNotificationChannel("dayflow-alarms") == null) {
-                    Uri use = alarmUri(c);
-                    AudioAttributes attrs = new AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_ALARM)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
-                    NotificationChannel ch = new NotificationChannel("dayflow-alarms", "زنگ‌های DayFlow", NotificationManager.IMPORTANCE_MAX);
-                    ch.enableVibration(true);
-                    ch.setVibrationPattern(new long[]{0,350,180,350,180,700});
-                    ch.setSound(use, attrs);
-                    ch.setBypassDnd(true);
-                    nm0.createNotificationChannel(ch);
-                }
-            }
-        } catch (Exception ignored) {}
-
-        Intent open = new Intent(c, MainActivity.class);
-        open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        open.putExtra("stop_alarm_sound", true);
-        int rid = (id == null ? "alarm" : id).hashCode() & 0x7fffffff;
-        PendingIntent pi = PendingIntent.getActivity(c, rid, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        // Action to stop sound
-        Intent stop = new Intent(c, DayFlowAlarmReceiver.class);
-        stop.setAction("${pkg}.STOP_SOUND");
-        PendingIntent stopPi = PendingIntent.getBroadcast(c, rid + 1, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-        NotificationCompat.Builder b = new NotificationCompat.Builder(c, "dayflow-alarms")
-                .setSmallIcon(R.drawable.ic_stat_dayflow)
-                .setContentTitle("⏰ " + (title == null ? "زنگ" : title))
-                .setContentText("DayFlow — برای خاموش کردن لمس کن")
-                .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setAutoCancel(true)
-                .setOngoing(true)
-                .setContentIntent(pi)
-                .addAction(0, "خاموش کردن", stopPi)
-                .setVibrate(new long[]{0,350,180,350,180,700});
-        // Sound is played by MediaPlayer (looping); channel sound is backup only — avoid double short blip
-        b.setSound(null);
-        if (Build.VERSION.SDK_INT >= 21) b.setTimeoutAfter(5 * 60 * 1000L);
-
-        NotificationManager nm = (NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
-        nm.notify(rid, b.build());
+        DayFlowAlarmService.start(context, title);
     }
 }
 `);
+
 
 
 // ---- Restore alarm scheduling after reboot/update ----
@@ -744,12 +822,12 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         // When user opens the app, stop looping alarm sound
-        try { DayFlowAlarmReceiver.stopSound(this); } catch (Exception ignored) {}
+        try { DayFlowAlarmService.stop(this); } catch (Exception ignored) {}
     }
 
     private void stopAlarmIfNeeded(Intent intent) {
         try {
-            DayFlowAlarmReceiver.stopSound(this);
+            DayFlowAlarmService.stop(this);
             if (intent != null && intent.getBooleanExtra("stop_alarm_sound", false)) {
                 android.app.NotificationManager nm = (android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
                 if (nm != null) nm.cancelAll();

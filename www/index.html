@@ -272,7 +272,7 @@ if(NATIVE){
   });
 }
 (function(){var a0=alAct,t0=applyTheme;
- alAct=function(a,v){a0(a,v);if(NATIVE){try{var plug=_ensurePlugin('DayFlowNative');if(plug&&plug.stopAlarmSound)plug.stopAlarmSound();if(a!=='mute'&&NP.LocalNotifications)NP.LocalNotifications.removeAllDeliveredNotifications()}catch(e){}}};
+ alAct=function(a,v){a0(a,v);if(NATIVE){try{var plug=_ensurePlugin('DayFlowNative');if(plug&&plug.stopAlarmSound)plug.stopAlarmSound();if(NP.LocalNotifications)NP.LocalNotifications.removeAllDeliveredNotifications()}catch(e){}}};
  applyTheme=function(){t0();nStatusBar()}})();
 async function nStatusBar(){if(!NATIVE)return;try{var l=document.body.classList.contains('light');if(NP.StatusBar){await NP.StatusBar.setOverlaysWebView({overlay:false});await NP.StatusBar.setStyle({style:l?'LIGHT':'DARK'});await NP.StatusBar.setBackgroundColor({color:l?'#F7FAFF':'#03070C'});if(NP.StatusBar.setNavigationBarColor)await NP.StatusBar.setNavigationBarColor({color:l?'#F7FAFF':'#03070C'});}}catch(e){}
 }
