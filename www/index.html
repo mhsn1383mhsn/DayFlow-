@@ -303,7 +303,11 @@ async function pickPhoneSound(kind){
     await nRefreshPerm();
     if(setOpen)openSet(1);
     var has=kind==='alarm'?(r&&r.alarmSound):(r&&r.notificationSound);
-    toast(has?(kind==='alarm'?'✓ صدای آلارم انتخاب شد':'✓ صدای اعلان انتخاب شد'):'✓ صدای پیش‌فرض سیستم',2500);
+    if(has){
+      toast(kind==='alarm'?'✓ صدای آلارم ذخیره شد — با «تست صدا» بررسی کن':'✓ صدای اعلان ذخیره شد',3000);
+    }else{
+      toast('⚠ صدا ذخیره نشد؛ دوباره انتخاب کن',3500);
+    }
     nSync();
   }catch(e){
     var msg=String((e&&(e.message||e.errorMessage))||e||'');
