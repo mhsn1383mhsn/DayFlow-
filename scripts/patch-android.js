@@ -260,8 +260,15 @@ public class DayFlowNativePlugin extends Plugin {
     private SharedPreferences prefs() { return getContext().getSharedPreferences(PREF, Context.MODE_PRIVATE); }
 
     private Uri selectedSound(String kind) {
-        String s = prefs().getString(kind.equals("alarm") ? "alarmSound" : "notificationSound", "");
-        return s.isEmpty() ? null : Uri.parse(s);
+        // Prefer original content:// ringtone URI — system NotificationManager can read it
+        String s = prefs().getString("alarm".equals(kind) ? "alarmSound" : "notificationSound", "");
+        if (s != null && !s.isEmpty()) return Uri.parse(s);
+        String local = prefs().getString("alarm".equals(kind) ? "alarmSoundLocal" : "notificationSoundLocal", "");
+        if (local != null && !local.isEmpty()) {
+            java.io.File f = new java.io.File(local);
+            if (f.exists() && f.length() > 0) return Uri.fromFile(f);
+        }
+        return null;
     }
 
     public void ensureChannels() {
@@ -393,12 +400,27 @@ public class DayFlowNativePlugin extends Plugin {
             }
             String kind = call.getString("kind", "notification");
             String key = "alarm".equals(kind) ? "alarmSound" : "notificationSound";
+            String localKey = "alarm".equals(kind) ? "alarmSoundLocal" : "notificationSoundLocal";
             if (u == null) {
-                // User picked the system default → clear custom sound
-                prefs().edit().remove(key).apply();
+                prefs().edit().remove(key).remove(localKey).apply();
             } else {
                 try { getContext().getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) {}
                 prefs().edit().putString(key, u.toString()).apply();
+                // Copy to app-private file so MediaPlayer/channel can always read it
+                try {
+                    java.io.InputStream in = getContext().getContentResolver().openInputStream(u);
+                    if (in != null) {
+                        java.io.File out = new java.io.File(getContext().getFilesDir(), "alarm".equals(kind) ? "alarm_sound.bin" : "notif_sound.bin");
+                        java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
+                        byte[] buf = new byte[8192];
+                        int n;
+                        while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
+                        fos.flush(); fos.close(); in.close();
+                        prefs().edit().putString(localKey, out.getAbsolutePath()).apply();
+                    }
+                } catch (Exception copyEx) {
+                    prefs().edit().remove(localKey).apply();
+                }
             }
             forceRecreateChannels();
             call.resolve(statusObject());
@@ -407,7 +429,11 @@ public class DayFlowNativePlugin extends Plugin {
 
     @PluginMethod public void resetSound(PluginCall call) {
         String kind = call.getString("kind", "notification");
-        prefs().edit().remove("alarm".equals(kind) ? "alarmSound" : "notificationSound").apply();
+        String key = "alarm".equals(kind) ? "alarmSound" : "notificationSound";
+        String localKey = "alarm".equals(kind) ? "alarmSoundLocal" : "notificationSoundLocal";
+        String localPath = prefs().getString(localKey, "");
+        prefs().edit().remove(key).remove(localKey).apply();
+        try { if (localPath != null && !localPath.isEmpty()) new java.io.File(localPath).delete(); } catch (Exception ignored) {}
         forceRecreateChannels();
         call.resolve(statusObject());
     }
@@ -415,6 +441,24 @@ public class DayFlowNativePlugin extends Plugin {
     @PluginMethod public void applySounds(PluginCall call) {
         forceRecreateChannels();
         call.resolve(statusObject());
+    }
+
+    @PluginMethod public void stopAlarmSound(PluginCall call) {
+        try { DayFlowAlarmReceiver.stopSound(getContext()); } catch (Exception ignored) {}
+        call.resolve();
+    }
+
+    @PluginMethod public void playTestSound(PluginCall call) {
+        try {
+            // Fire a one-shot test via the same player path as real alarms
+            DayFlowAlarmReceiver.stopSound(getContext());
+            android.content.Intent i = new android.content.Intent(getContext(), DayFlowAlarmReceiver.class);
+            i.setAction("${pkg}.ALARM");
+            i.putExtra("alarm_id", "test-sound");
+            i.putExtra("alarm_title", "تست صدا");
+            getContext().sendBroadcast(i);
+            call.resolve();
+        } catch (Exception e) { call.reject("پخش تست ممکن نشد", e); }
     }
 
     @PluginMethod public void scheduleAlarms(PluginCall call) {
@@ -450,16 +494,29 @@ public class DayFlowNativePlugin extends Plugin {
 fs.writeFileSync(path.join(javaDir, 'DayFlowAlarmReceiver.java'), `package ${pkg};
 
 import android.app.AlarmManager;
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.media.AudioAttributes;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
 
 import androidx.core.app.NotificationCompat;
 
 public class DayFlowAlarmReceiver extends BroadcastReceiver {
+    private static final String PREF = "dayflow_native";
+    private static MediaPlayer player;
+    private static PowerManager.WakeLock wakeLock;
+
     private static PendingIntent pending(Context c, String id, String title) {
         Intent i = new Intent(c, DayFlowAlarmReceiver.class);
         i.setAction("${pkg}.ALARM");
@@ -494,30 +551,99 @@ public class DayFlowAlarmReceiver extends BroadcastReceiver {
         }
     }
 
+    /** Stop looping alarm sound (called when user opens app or dismisses). */
+    public static synchronized void stopSound(Context c) {
+        try {
+            if (player != null) {
+                if (player.isPlaying()) player.stop();
+                player.release();
+            }
+        } catch (Exception ignored) {}
+        player = null;
+        try {
+            if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        } catch (Exception ignored) {}
+        wakeLock = null;
+    }
+
+    private static Uri alarmUri(Context c) {
+        try {
+            String s = c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("alarmSound", "");
+            if (s != null && !s.isEmpty()) {
+                // Prefer local copy if present
+                String local = c.getSharedPreferences(PREF, Context.MODE_PRIVATE).getString("alarmSoundLocal", "");
+                if (local != null && !local.isEmpty()) {
+                    java.io.File f = new java.io.File(local);
+                    if (f.exists() && f.length() > 0) return Uri.fromFile(f);
+                }
+                return Uri.parse(s);
+            }
+        } catch (Exception ignored) {}
+        return Settings.System.DEFAULT_ALARM_ALERT_URI;
+    }
+
+    private static synchronized void startSound(Context c) {
+        stopSound(c);
+        try {
+            PowerManager pm = (PowerManager)c.getSystemService(Context.POWER_SERVICE);
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "dayflow:alarm");
+            wakeLock.acquire(5 * 60 * 1000L);
+
+            Uri uri = alarmUri(c);
+            player = new MediaPlayer();
+            player.setDataSource(c, uri);
+            if (Build.VERSION.SDK_INT >= 21) {
+                player.setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build());
+            } else {
+                player.setAudioStreamType(AudioManager.STREAM_ALARM);
+            }
+            player.setLooping(true);
+            player.setVolume(1f, 1f);
+            player.prepare();
+            player.start();
+        } catch (Exception e) {
+            // fallback: system ringtone API
+            try {
+                android.media.Ringtone rt = RingtoneManager.getRingtone(c, alarmUri(c));
+                if (rt != null) {
+                    if (Build.VERSION.SDK_INT >= 28) rt.setLooping(true);
+                    rt.play();
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+
     @Override public void onReceive(Context context, Intent intent) {
-        if (!"${pkg}.ALARM".equals(intent.getAction())) return;
+        String act = intent.getAction();
+        if ("${pkg}.STOP_SOUND".equals(act)) {
+            stopSound(context);
+            try {
+                NotificationManager nm = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+                nm.cancelAll();
+            } catch (Exception ignored) {}
+            return;
+        }
+        if (!"${pkg}.ALARM".equals(act)) return;
         String id = intent.getStringExtra("alarm_id");
         String title = intent.getStringExtra("alarm_title");
+        startSound(context);
         show(context, id, title);
     }
 
     private void show(Context c, String id, String title) {
-        Intent open = new Intent(c, MainActivity.class);
-        open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        int rid = (id == null ? "alarm" : id).hashCode() & 0x7fffffff;
-        PendingIntent pi = PendingIntent.getActivity(c, rid, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        // Ensure channel exists with current custom sound
+        // Ensure alarm channel exists
         try {
             if (Build.VERSION.SDK_INT >= 26) {
                 NotificationManager nm0 = (NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
                 if (nm0.getNotificationChannel("dayflow-alarms") == null) {
-                    // recreate via prefs
-                    String s = c.getSharedPreferences("dayflow_native", Context.MODE_PRIVATE).getString("alarmSound", "");
-                    android.net.Uri use = s.isEmpty() ? android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI : android.net.Uri.parse(s);
-                    android.media.AudioAttributes attrs = new android.media.AudioAttributes.Builder()
-                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
-                    android.app.NotificationChannel ch = new android.app.NotificationChannel("dayflow-alarms", "زنگ‌های DayFlow", android.app.NotificationManager.IMPORTANCE_MAX);
+                    Uri use = alarmUri(c);
+                    AudioAttributes attrs = new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
+                    NotificationChannel ch = new NotificationChannel("dayflow-alarms", "زنگ‌های DayFlow", NotificationManager.IMPORTANCE_MAX);
                     ch.enableVibration(true);
                     ch.setVibrationPattern(new long[]{0,350,180,350,180,700});
                     ch.setSound(use, attrs);
@@ -526,30 +652,40 @@ public class DayFlowAlarmReceiver extends BroadcastReceiver {
                 }
             }
         } catch (Exception ignored) {}
+
+        Intent open = new Intent(c, MainActivity.class);
+        open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        open.putExtra("stop_alarm_sound", true);
+        int rid = (id == null ? "alarm" : id).hashCode() & 0x7fffffff;
+        PendingIntent pi = PendingIntent.getActivity(c, rid, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // Action to stop sound
+        Intent stop = new Intent(c, DayFlowAlarmReceiver.class);
+        stop.setAction("${pkg}.STOP_SOUND");
+        PendingIntent stopPi = PendingIntent.getBroadcast(c, rid + 1, stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, "dayflow-alarms")
                 .setSmallIcon(R.drawable.ic_stat_dayflow)
                 .setContentTitle("⏰ " + (title == null ? "زنگ" : title))
-                .setContentText("DayFlow")
+                .setContentText("DayFlow — برای خاموش کردن لمس کن")
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setAutoCancel(true)
+                .setOngoing(true)
                 .setContentIntent(pi)
+                .addAction(0, "خاموش کردن", stopPi)
                 .setVibrate(new long[]{0,350,180,350,180,700});
-        // Always set sound on the builder too (pre-Oreo + OEM quirks)
-        try {
-            String s = c.getSharedPreferences("dayflow_native", Context.MODE_PRIVATE).getString("alarmSound", "");
-            android.net.Uri sound = s.isEmpty() ? android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI : android.net.Uri.parse(s);
-            b.setSound(sound);
-        } catch (Exception ignored) {
-            b.setSound(android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI);
-        }
-        if (Build.VERSION.SDK_INT >= 21) b.setTimeoutAfter(120000);
+        // Sound is played by MediaPlayer (looping); channel sound is backup only — avoid double short blip
+        b.setSound(null);
+        if (Build.VERSION.SDK_INT >= 21) b.setTimeoutAfter(5 * 60 * 1000L);
+
         NotificationManager nm = (NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
         nm.notify(rid, b.build());
     }
 }
 `);
+
 
 // ---- Restore alarm scheduling after reboot/update ----
 fs.writeFileSync(path.join(javaDir, 'DayFlowBootReceiver.java'), `package ${pkg};
@@ -584,6 +720,7 @@ public class DayFlowBootReceiver extends BroadcastReceiver {
 const mainActivity = path.join(javaDir, 'MainActivity.java');
 const ma = `package ${pkg};
 
+import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 
@@ -593,6 +730,31 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(DayFlowCalendarPlugin.class);
         registerPlugin(DayFlowNativePlugin.class);
         super.onCreate(savedInstanceState);
+        stopAlarmIfNeeded(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        stopAlarmIfNeeded(intent);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // When user opens the app, stop looping alarm sound
+        try { DayFlowAlarmReceiver.stopSound(this); } catch (Exception ignored) {}
+    }
+
+    private void stopAlarmIfNeeded(Intent intent) {
+        try {
+            DayFlowAlarmReceiver.stopSound(this);
+            if (intent != null && intent.getBooleanExtra("stop_alarm_sound", false)) {
+                android.app.NotificationManager nm = (android.app.NotificationManager)getSystemService(NOTIFICATION_SERVICE);
+                if (nm != null) nm.cancelAll();
+            }
+        } catch (Exception ignored) {}
     }
 }
 `;
