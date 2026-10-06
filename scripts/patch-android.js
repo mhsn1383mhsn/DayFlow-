@@ -271,19 +271,39 @@ public class DayFlowNativePlugin extends Plugin {
         if (nm.getNotificationChannel("dayflow-alarms") == null) createChannel("dayflow-alarms", "زنگ‌های DayFlow", "alarm");
     }
 
+    /** Always delete + recreate so custom ringtone is applied (Android freezes channel sound after create). */
+    public void forceRecreateChannels() {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = (NotificationManager)getContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        try { nm.deleteNotificationChannel("dayflow-alerts"); } catch (Exception ignored) {}
+        try { nm.deleteNotificationChannel("dayflow-alarms"); } catch (Exception ignored) {}
+        createChannel("dayflow-alerts", "اعلان‌های DayFlow", "notification");
+        createChannel("dayflow-alarms", "زنگ‌های DayFlow", "alarm");
+    }
+
     private void createChannel(String id, String name, String kind) {
         if (Build.VERSION.SDK_INT < 26) return;
         NotificationManager nm = (NotificationManager)getContext().getSystemService(Context.NOTIFICATION_SERVICE);
         Uri sound = selectedSound(kind);
+        Uri fallback = "alarm".equals(kind) ? Settings.System.DEFAULT_ALARM_ALERT_URI : Settings.System.DEFAULT_NOTIFICATION_URI;
+        Uri use = sound != null ? sound : fallback;
         AudioAttributes attrs = new AudioAttributes.Builder()
-                .setUsage(kind.equals("alarm") ? AudioAttributes.USAGE_ALARM : AudioAttributes.USAGE_NOTIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
-        Uri fallback = kind.equals("alarm") ? Settings.System.DEFAULT_ALARM_ALERT_URI : Settings.System.DEFAULT_NOTIFICATION_URI;
-        NotificationChannel channel = new NotificationChannel(id, name, NotificationManager.IMPORTANCE_HIGH);
+                .setUsage("alarm".equals(kind) ? AudioAttributes.USAGE_ALARM : AudioAttributes.USAGE_NOTIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+        int importance = "alarm".equals(kind) ? NotificationManager.IMPORTANCE_MAX : NotificationManager.IMPORTANCE_HIGH;
+        NotificationChannel channel = new NotificationChannel(id, name, importance);
         channel.enableVibration(true);
         channel.setVibrationPattern(new long[]{0,350,180,350,180,700});
         channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
-        channel.setSound(sound != null ? sound : fallback, attrs);
+        channel.enableLights(true);
+        channel.setLightColor(0xFF178BFF);
+        channel.setBypassDnd("alarm".equals(kind));
+        try {
+            channel.setSound(use, attrs);
+        } catch (Exception e) {
+            channel.setSound(fallback, attrs);
+        }
         nm.createNotificationChannel(channel);
     }
 
@@ -380,24 +400,20 @@ public class DayFlowNativePlugin extends Plugin {
                 try { getContext().getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) {}
                 prefs().edit().putString(key, u.toString()).apply();
             }
-            if (Build.VERSION.SDK_INT >= 26) {
-                NotificationManager nm = (NotificationManager)getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-                String id = "alarm".equals(kind) ? "dayflow-alarms" : "dayflow-alerts";
-                nm.deleteNotificationChannel(id);
-                createChannel(id, "alarm".equals(kind) ? "زنگ‌های DayFlow" : "اعلان‌های DayFlow", kind);
-            }
+            forceRecreateChannels();
             call.resolve(statusObject());
         } catch (Exception e) { call.reject("انتخاب فایل صدا انجام نشد", e); }
     }
 
     @PluginMethod public void resetSound(PluginCall call) {
         String kind = call.getString("kind", "notification");
-        prefs().edit().remove(kind.equals("alarm") ? "alarmSound" : "notificationSound").apply();
-        if (Build.VERSION.SDK_INT >= 26) {
-            NotificationManager nm = (NotificationManager)getContext().getSystemService(Context.NOTIFICATION_SERVICE);
-            String id = kind.equals("alarm") ? "dayflow-alarms" : "dayflow-alerts";
-            nm.deleteNotificationChannel(id); createChannel(id, kind.equals("alarm") ? "زنگ‌های DayFlow" : "اعلان‌های DayFlow", kind);
-        }
+        prefs().edit().remove("alarm".equals(kind) ? "alarmSound" : "notificationSound").apply();
+        forceRecreateChannels();
+        call.resolve(statusObject());
+    }
+
+    @PluginMethod public void applySounds(PluginCall call) {
+        forceRecreateChannels();
         call.resolve(statusObject());
     }
 
@@ -490,6 +506,26 @@ public class DayFlowAlarmReceiver extends BroadcastReceiver {
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         int rid = (id == null ? "alarm" : id).hashCode() & 0x7fffffff;
         PendingIntent pi = PendingIntent.getActivity(c, rid, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        // Ensure channel exists with current custom sound
+        try {
+            if (Build.VERSION.SDK_INT >= 26) {
+                NotificationManager nm0 = (NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);
+                if (nm0.getNotificationChannel("dayflow-alarms") == null) {
+                    // recreate via prefs
+                    String s = c.getSharedPreferences("dayflow_native", Context.MODE_PRIVATE).getString("alarmSound", "");
+                    android.net.Uri use = s.isEmpty() ? android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI : android.net.Uri.parse(s);
+                    android.media.AudioAttributes attrs = new android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
+                    android.app.NotificationChannel ch = new android.app.NotificationChannel("dayflow-alarms", "زنگ‌های DayFlow", android.app.NotificationManager.IMPORTANCE_MAX);
+                    ch.enableVibration(true);
+                    ch.setVibrationPattern(new long[]{0,350,180,350,180,700});
+                    ch.setSound(use, attrs);
+                    ch.setBypassDnd(true);
+                    nm0.createNotificationChannel(ch);
+                }
+            }
+        } catch (Exception ignored) {}
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, "dayflow-alarms")
                 .setSmallIcon(R.drawable.ic_stat_dayflow)
                 .setContentTitle("⏰ " + (title == null ? "زنگ" : title))
@@ -500,15 +536,13 @@ public class DayFlowAlarmReceiver extends BroadcastReceiver {
                 .setAutoCancel(true)
                 .setContentIntent(pi)
                 .setVibrate(new long[]{0,350,180,350,180,700});
-        // For pre-Oreo, set sound from prefs or default alarm
-        if (Build.VERSION.SDK_INT < 26) {
-            try {
-                String s = c.getSharedPreferences("dayflow_native", Context.MODE_PRIVATE).getString("alarmSound", "");
-                android.net.Uri sound = s.isEmpty() ? android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI : android.net.Uri.parse(s);
-                b.setSound(sound);
-            } catch (Exception ignored) {
-                b.setSound(android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI);
-            }
+        // Always set sound on the builder too (pre-Oreo + OEM quirks)
+        try {
+            String s = c.getSharedPreferences("dayflow_native", Context.MODE_PRIVATE).getString("alarmSound", "");
+            android.net.Uri sound = s.isEmpty() ? android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI : android.net.Uri.parse(s);
+            b.setSound(sound);
+        } catch (Exception ignored) {
+            b.setSound(android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI);
         }
         if (Build.VERSION.SDK_INT >= 21) b.setTimeoutAfter(120000);
         NotificationManager nm = (NotificationManager)c.getSystemService(Context.NOTIFICATION_SERVICE);

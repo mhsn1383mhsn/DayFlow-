@@ -277,7 +277,11 @@ if(NATIVE){
 async function nStatusBar(){if(!NATIVE)return;try{var l=document.body.classList.contains('light');if(NP.StatusBar){await NP.StatusBar.setOverlaysWebView({overlay:false});await NP.StatusBar.setStyle({style:l?'LIGHT':'DARK'});await NP.StatusBar.setBackgroundColor({color:l?'#F7FAFF':'#03070C'});if(NP.StatusBar.setNavigationBarColor)await NP.StatusBar.setNavigationBarColor({color:l?'#F7FAFF':'#03070C'});}}catch(e){}
 }
 async function nRefreshPerm(){if(!NATIVE&&!_detectNative())return;NATIVE=true;try{var plug=_ensurePlugin('DayFlowNative');if(plug&&typeof plug.status==='function'){var st=await plug.status();nNativeStatus=st;nPerm=st.notificationsEnabled?'granted':'denied'}else if(NP.LocalNotifications){var r=await NP.LocalNotifications.checkPermissions();nPerm=r.display}}catch(e){}bnSig='';try{bnRender()}catch(e){} }
-async function nChannel(){try{var plug=_ensurePlugin('DayFlowNative');if(plug&&typeof plug.init==='function')await plug.init({});if(NP.LocalNotifications){await NP.LocalNotifications.createChannel({id:'dayflow-alerts',name:'اعلان‌های DayFlow',description:'اعلان‌ها و یادآوری‌های DayFlow',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#178BFF'});await NP.LocalNotifications.createChannel({id:'dayflow-alarms',name:'زنگ‌های DayFlow',description:'زنگ‌های DayFlow با صدای آلارم گوشی',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#FFB020'});}}catch(e){} }
+async function nChannel(){try{if(NP.LocalNotifications){try{await NP.LocalNotifications.createChannel({id:'dayflow-alerts',name:'اعلان‌های DayFlow',description:'اعلان‌ها و یادآوری‌های DayFlow',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#178BFF'});await NP.LocalNotifications.createChannel({id:'dayflow-alarms',name:'زنگ‌های DayFlow',description:'زنگ‌های DayFlow با صدای آلارم گوشی',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#FFB020'})}catch(e){}}
+  var plug=_ensurePlugin('DayFlowNative');
+  // applySounds force-recreates channels with the user-selected ringtone (Capacitor cannot set content:// URIs)
+  if(plug){if(typeof plug.applySounds==='function')await plug.applySounds();else if(typeof plug.init==='function')await plug.init({})}
+}catch(e){} }
 async function nExactEnsure(){try{var r=await NP.LocalNotifications.checkExactNotificationSetting();if(r&&r.exact_alarm==='denied'){toast('برای زنگ دقیق، اجازهٔ «آلارم و یادآوری» را روشن کن',6000);var plug=_ensurePlugin('DayFlowNative');if(plug&&plug.openExactAlarmSettings)await plug.openExactAlarmSettings();else await NP.LocalNotifications.changeExactNotificationSetting()}}catch(e){} }
 async function nAsk(){try{var r=await NP.LocalNotifications.requestPermissions();nPerm=r.display}catch(e){}await nChannel();await nRefreshPerm();if(nPerm==='granted')await nExactEnsure();bnSig='';try{bnRender()}catch(e){}if(setOpen)openSet(1);nSync()}
 async function fixNotifications(){if(!NATIVE&&!_detectNative())return;if(nNativeStatus&&nNativeStatus.notificationsEnabled&&(!nNativeStatus.alertChannelEnabled||!nNativeStatus.alarmChannelEnabled)){try{var plug=_ensurePlugin('DayFlowNative');if(plug&&plug.openNotificationSettings)await plug.openNotificationSettings()}catch(e){}return}await nAsk()}
@@ -446,7 +450,7 @@ function ringTick(now){const R=ringList(now);if(!R.length){alHide();RS.id='';ret
  const E=R[0],sig=E.id+':'+E.n;if(RS.id!==sig)RS={id:sig,start:now,last:0,mute:false,nlast:0};
  alShow(E,R.length-1,now);
  if(now-RS.start>=S.set.ringSec*1e3){if(E.auto<S.set.autoRep){E.auto++;E.n++;E.due=now+S.set.autoGap*6e4}else E.stopped=true;dirty=true;RS.id='';ringTick(now);return}
- if(!RS.mute&&now-RS.last>=(S.set.persist?3000:1e12)){RS.last=now;if(S.set.sound)playTone(S.set.tone,S.set.vol);if(S.set.vib&&navigator.vibrate)navigator.vibrate([400,200,400,200,800])}
+ if(!RS.mute&&now-RS.last>=(S.set.persist?3000:1e12)){RS.last=now;/* روی اندروید صدای سیستم از کانال نوتیف می‌آید؛ صدای داخل‌برنامه فقط وقتی native نیست */if(S.set.sound&&!NATIVE)playTone(S.set.tone,S.set.vol);if(S.set.vib&&navigator.vibrate)navigator.vibrate([400,200,400,200,800])}
  if(document.hidden&&now-RS.nlast>=15000){RS.nlast=now;sysNotify(E)}}
 function alShow(E,more,now){const al=$('#al');if(!al.classList.contains('on')){al.classList.add('on');document.body.style.overflow='hidden'}
  const sig=E.id+':'+E.n,late=now-E.due>90000;
@@ -711,7 +715,7 @@ function openSet(keep){const y=keep?$('#sh').scrollTop:0,c=S.set,ns=NATIVE?(nPer
  sheet(`<h3>⚙️ تنظیمات</h3>
  ${acctHtml()}
  <div class="sg">ظاهر</div><label>تم</label>${chips('s_theme',[['dark','تیره'],['light','روشن'],['auto','خودکار (مثل گوشی)']],c.theme)}<label>اندازهٔ نوشته‌ها</label>${chips('s_fs',[['s','کوچک'],['m','متوسط'],['l','بزرگ']],c.fs)}
- <div class="sg">صدا و لرزش هشدار</div>${sw('sound','صدای هشدار')}<label>صدای داخل برنامه</label>${chips('s_tone',[['classic','کلاسیک'],['soft','ملایم'],['urgent','تند و بلند']],c.tone)}
+ <div class="sg">صدا و لرزش هشدار</div>${sw('sound','صدای هشدار')}<label>صدای داخل برنامه ${NATIVE?'(فقط تست/وب — زنگ واقعی از گوشی پخش می‌شود)':''}</label>${chips('s_tone',[['classic','کلاسیک'],['soft','ملایم'],['urgent','تند و بلند']],c.tone)}
  <div class="hint" style="margin-top:8px">صداهای سیستم (آلارم/اعلان): ${NATIVE?(nNativeStatus&&nNativeStatus.alarmSound?'⏰ سفارشی':'⏰ پیش‌فرض')+' · '+(nNativeStatus&&nNativeStatus.notificationSound?'🔔 سفارشی':'🔔 پیش‌فرض'):'فقط در نسخهٔ اندروید'}</div>
  <div class="hint" style="opacity:.7;font-size:11px">تشخیص: ${NATIVE?'✅ Native':'⛔ Web'} · پلاگین صدا: ${_ensurePlugin('DayFlowNative')?'✅':'⛔'} · پلتفرم: ${CAP&&CAP.getPlatform?CAP.getPlatform():'?'} · Capacitor: ${CAP?'✅':'⛔'}</div>
  <div class="two" style="margin-top:8px"><button class="btn g" onclick="pickPhoneSound('alarm')">⏰ انتخاب صدای آلارم</button><button class="btn g" onclick="pickPhoneSound('notification')">🔔 انتخاب صدای اعلان</button></div>
