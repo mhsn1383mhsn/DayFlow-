@@ -561,10 +561,16 @@ public class DayFlowAlarmService extends Service {
     public static final String ACTION_STOP = "${pkg}.ALARM_STOP";
     private static final String PREF = "dayflow_native";
     private static final int NOTIF_ID = 71001;
+    private static volatile DayFlowAlarmService instance;
 
     private MediaPlayer player;
     private Ringtone ringtone;
     private PowerManager.WakeLock wakeLock;
+
+    @Override public void onCreate() {
+        super.onCreate();
+        instance = this;
+    }
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
@@ -783,11 +789,13 @@ public class DayFlowAlarmService extends Service {
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             nm.cancel(NOTIF_ID);
         } catch (Exception ignored) {}
-        stopSelf();
+        instance = null;
+        try { stopSelf(); } catch (Exception ignored) {}
     }
 
     @Override public void onDestroy() {
         stopPlayerOnly();
+        instance = null;
         super.onDestroy();
     }
 
@@ -800,13 +808,20 @@ public class DayFlowAlarmService extends Service {
     }
 
     public static void stop(Context c) {
+        // 1) Direct call on running instance (most reliable)
+        try {
+            DayFlowAlarmService s = instance;
+            if (s != null) s.shutdown();
+        } catch (Exception ignored) {}
+        // 2) Also deliver STOP intent + stopService as backup
         try {
             Intent i = new Intent(c, DayFlowAlarmService.class);
             i.setAction(ACTION_STOP);
             c.startService(i);
-        } catch (Exception e) {
-            try { c.stopService(new Intent(c, DayFlowAlarmService.class)); } catch (Exception ignored) {}
-        }
+        } catch (Exception ignored) {}
+        try {
+            c.stopService(new Intent(c, DayFlowAlarmService.class));
+        } catch (Exception ignored) {}
     }
 }
 `);

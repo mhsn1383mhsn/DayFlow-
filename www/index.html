@@ -414,7 +414,33 @@ let AC=null;function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitA
 ['click','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,()=>ac(),{passive:true}));
 const TONES={classic:()=>[0,.28,.56,.84].map(t=>[880,t,.16,'square']),soft:()=>[523,659,784,1047].map((f,i)=>[f,i*.3,.45,'sine']),urgent:()=>Array.from({length:8},(_,i)=>[i%2?720:980,i*.16,.15,'sawtooth'])};
 function playTone(n,vol){const c=ac();if(!c)return;(TONES[n]||TONES.classic)().forEach(([f,t,d,ty])=>{const o=c.createOscillator(),g=c.createGain();o.type=ty;o.frequency.value=f;o.connect(g);g.connect(c.destination);const s=c.currentTime+t,pk=Math.max(.01,vol*(ty==='sine'?.6:.3));g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(pk,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.start(s);o.stop(s+d+.05)})}
-function testTone(){if(NATIVE){(async function(){try{var plug=_ensurePlugin('DayFlowNative');if(plug&&plug.playTestSound){await plug.playTestSound();toast('🔊 پخش صدای آلارم سیستم…',2000);setTimeout(function(){try{plug.stopAlarmSound()}catch(e){}},8000);return}}catch(e){}})()}playTone(S.set.tone,S.set.vol);if(S.set.vib&&navigator.vibrate)navigator.vibrate([300,150,300])}
+var _testSoundOn=false,_testSoundTm=0;
+function testTone(){
+  if(NATIVE){(async function(){
+    try{
+      var plug=_ensurePlugin('DayFlowNative');
+      if(!plug)return;
+      // second press → stop immediately
+      if(_testSoundOn){
+        _testSoundOn=false;clearTimeout(_testSoundTm);
+        if(plug.stopAlarmSound)await plug.stopAlarmSound();
+        toast('🔇 تست قطع شد',1500);return;
+      }
+      if(plug.playTestSound){
+        await plug.playTestSound();
+        _testSoundOn=true;
+        toast('🔊 تست صدا — برای قطع دوباره بزن',3000);
+        clearTimeout(_testSoundTm);
+        _testSoundTm=setTimeout(async function(){
+          _testSoundOn=false;
+          try{if(plug.stopAlarmSound)await plug.stopAlarmSound()}catch(e){}
+        },6000);
+        return;
+      }
+    }catch(e){toast('تست صدا خطا داد',2000)}
+  })();return}
+  playTone(S.set.tone,S.set.vol);if(S.set.vib&&navigator.vibrate)navigator.vibrate([300,150,300])
+}
 
 /* ---------- toast / sheet ---------- */
 function toast(m,ms=3200){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),ms)}
