@@ -341,6 +341,17 @@ public class DayFlowNativePlugin extends Plugin {
         }
         o.put("notificationSound", prefs().getString("notificationSound", ""));
         o.put("alarmSound", prefs().getString("alarmSound", ""));
+        o.put("alarmSoundLocal", prefs().getString("alarmSoundLocal", ""));
+        o.put("pendingSoundKind", prefs().getString("pendingSoundKind", ""));
+        try {
+            String lp = prefs().getString("alarmSoundLocal", "");
+            if (lp != null && !lp.isEmpty()) {
+                java.io.File f = new java.io.File(lp);
+                o.put("alarmLocalBytes", f.exists() ? f.length() : 0);
+            } else {
+                o.put("alarmLocalBytes", 0);
+            }
+        } catch (Exception e) { o.put("alarmLocalBytes", 0); }
         return o;
     }
 
@@ -405,39 +416,62 @@ public class DayFlowNativePlugin extends Plugin {
             Intent data = result.getData();
             Uri u = null;
             if (data != null) {
-                // Ringtone picker returns EXTRA_RINGTONE_PICKED_URI; document picker returns getData()
-                u = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+                if (Build.VERSION.SDK_INT >= 33) {
+                    u = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri.class);
+                } else {
+                    u = data.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+                }
                 if (u == null) u = data.getData();
             }
             String kind = pendingSoundKind;
             if (kind == null || kind.isEmpty()) kind = prefs().getString("pendingSoundKind", null);
-            if (kind == null || kind.isEmpty()) kind = call.getString("kind", "notification");
+            if (kind == null || kind.isEmpty()) {
+                try { kind = call.getString("kind", "notification"); } catch (Exception ignored) { kind = "notification"; }
+            }
             if (kind == null || kind.isEmpty()) kind = "notification";
             String key = "alarm".equals(kind) ? "alarmSound" : "notificationSound";
             String localKey = "alarm".equals(kind) ? "alarmSoundLocal" : "notificationSoundLocal";
+            android.content.SharedPreferences.Editor ed = prefs().edit();
             if (u == null) {
-                prefs().edit().remove(key).remove(localKey).apply();
+                // User selected "default"
+                ed.remove(key).remove(localKey).apply();
             } else {
                 try { getContext().getContentResolver().takePersistableUriPermission(u, Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) {}
-                prefs().edit().putString(key, u.toString()).apply();
-                // Copy to app-private file so MediaPlayer/channel can always read it
+                ed.putString(key, u.toString());
+                // Always try to materialize a private copy
+                boolean copied = false;
                 try {
                     java.io.InputStream in = getContext().getContentResolver().openInputStream(u);
                     if (in != null) {
-                        java.io.File out = new java.io.File(getContext().getFilesDir(), "alarm".equals(kind) ? "alarm_sound.bin" : "notif_sound.bin");
+                        java.io.File out = new java.io.File(getContext().getFilesDir(),
+                                "alarm".equals(kind) ? "alarm_sound.dat" : "notif_sound.dat");
                         java.io.FileOutputStream fos = new java.io.FileOutputStream(out);
-                        byte[] buf = new byte[8192];
-                        int n;
-                        while ((n = in.read(buf)) > 0) fos.write(buf, 0, n);
+                        byte[] buf = new byte[16384];
+                        int n; long total = 0;
+                        while ((n = in.read(buf)) > 0) { fos.write(buf, 0, n); total += n; }
                         fos.flush(); fos.close(); in.close();
-                        prefs().edit().putString(localKey, out.getAbsolutePath()).apply();
+                        if (total > 64) {
+                            ed.putString(localKey, out.getAbsolutePath());
+                            copied = true;
+                        }
                     }
-                } catch (Exception copyEx) {
-                    prefs().edit().remove(localKey).apply();
-                }
+                } catch (Exception ignored) {}
+                if (!copied) ed.remove(localKey);
+                ed.apply();
+                // Verify Ringtone can resolve this URI (saves us from silent failures later)
+                try {
+                    android.media.Ringtone test = RingtoneManager.getRingtone(getContext(), u);
+                    if (test == null && !copied) {
+                        call.reject("این صدا قابل پخش نیست؛ یکی دیگر انتخاب کن");
+                        return;
+                    }
+                } catch (Exception ignored) {}
             }
             forceRecreateChannels();
-            call.resolve(statusObject());
+            JSObject st = statusObject();
+            st.put("savedKind", kind);
+            st.put("savedUri", u != null ? u.toString() : "");
+            call.resolve(st);
         } catch (Exception e) { call.reject("انتخاب فایل صدا انجام نشد", e); }
     }
 
@@ -512,6 +546,8 @@ import android.content.SharedPreferences;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
@@ -525,7 +561,9 @@ public class DayFlowAlarmService extends Service {
     public static final String ACTION_STOP = "${pkg}.ALARM_STOP";
     private static final String PREF = "dayflow_native";
     private static final int NOTIF_ID = 71001;
+
     private MediaPlayer player;
+    private Ringtone ringtone;
     private PowerManager.WakeLock wakeLock;
 
     @Override public IBinder onBind(Intent intent) { return null; }
@@ -539,9 +577,13 @@ public class DayFlowAlarmService extends Service {
         if (title == null || title.isEmpty()) title = "زنگ";
         ensureSilentAlarmChannel();
         Notification n = buildNotification(title);
-        if (Build.VERSION.SDK_INT >= 29) {
-            startForeground(NOTIF_ID, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
-        } else {
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                startForeground(NOTIF_ID, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            } else {
+                startForeground(NOTIF_ID, n);
+            }
+        } catch (Exception e) {
             startForeground(NOTIF_ID, n);
         }
         startPlayer();
@@ -551,7 +593,6 @@ public class DayFlowAlarmService extends Service {
     private void ensureSilentAlarmChannel() {
         if (Build.VERSION.SDK_INT < 26) return;
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        // Delete and recreate without sound so only MediaPlayer is heard (no short system blip)
         try { nm.deleteNotificationChannel("dayflow-alarms"); } catch (Exception ignored) {}
         NotificationChannel ch = new NotificationChannel("dayflow-alarms", "زنگ‌های DayFlow", NotificationManager.IMPORTANCE_HIGH);
         ch.enableVibration(true);
@@ -564,72 +605,135 @@ public class DayFlowAlarmService extends Service {
         nm.createNotificationChannel(ch);
     }
 
-    /** Collect candidate URIs/paths in priority order for the user-selected alarm sound. */
-    private java.util.List<Object> alarmSources() {
-        java.util.ArrayList<Object> list = new java.util.ArrayList<>();
+    private Uri preferredUri() {
         SharedPreferences sp = getSharedPreferences(PREF, MODE_PRIVATE);
-        // 1) Original content:// from ringtone picker (best for system ringtones)
+        // Prefer the exact URI the user picked from the system ringtone list
         try {
             String s = sp.getString("alarmSound", "");
-            if (s != null && !s.isEmpty()) list.add(Uri.parse(s));
+            if (s != null && !s.isEmpty()) {
+                Uri u = Uri.parse(s);
+                if (u != null) return u;
+            }
         } catch (Exception ignored) {}
-        // 2) Local private copy path (string path works with MediaPlayer)
+        return Settings.System.DEFAULT_ALARM_ALERT_URI;
+    }
+
+    private String localPath() {
         try {
-            String local = sp.getString("alarmSoundLocal", "");
+            String local = getSharedPreferences(PREF, MODE_PRIVATE).getString("alarmSoundLocal", "");
             if (local != null && !local.isEmpty()) {
                 java.io.File f = new java.io.File(local);
-                if (f.exists() && f.length() > 64) list.add(local);
+                if (f.exists() && f.length() > 64) return local;
             }
         } catch (Exception ignored) {}
-        // 3) System default last
-        list.add(Settings.System.DEFAULT_ALARM_ALERT_URI);
-        return list;
+        return null;
     }
 
-    private boolean tryPlay(Object src) {
-        MediaPlayer mp = null;
-        try {
-            mp = new MediaPlayer();
-            if (src instanceof String) {
-                mp.setDataSource((String) src);
-            } else {
-                mp.setDataSource(this, (Uri) src);
-            }
-            if (Build.VERSION.SDK_INT >= 21) {
-                mp.setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build());
-            } else {
-                mp.setAudioStreamType(AudioManager.STREAM_ALARM);
-            }
-            mp.setLooping(true);
-            mp.setVolume(1f, 1f);
-            mp.setOnErrorListener((mplayer, what, extra) -> true);
-            mp.prepare();
-            mp.start();
-            player = mp;
-            return true;
-        } catch (Exception e) {
-            try { if (mp != null) mp.release(); } catch (Exception ignored) {}
-            return false;
-        }
-    }
-
-    private void startPlayer() {
-        stopPlayerOnly();
+    private void acquireWake() {
         try {
             PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
             wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "dayflow:alarmsvc");
             wakeLock.acquire(10 * 60 * 1000L);
         } catch (Exception ignored) {}
+    }
 
-        for (Object src : alarmSources()) {
-            if (tryPlay(src)) return;
+    private void startPlayer() {
+        stopPlayerOnly();
+        acquireWake();
+        Uri uri = preferredUri();
+        String path = localPath();
+
+        // 1) Ringtone API — designed for system ringtone content:// URIs
+        try {
+            ringtone = RingtoneManager.getRingtone(this, uri);
+            if (ringtone != null) {
+                if (Build.VERSION.SDK_INT >= 21) {
+                    ringtone.setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build());
+                } else {
+                    ringtone.setStreamType(AudioManager.STREAM_ALARM);
+                }
+                if (Build.VERSION.SDK_INT >= 28) ringtone.setLooping(true);
+                ringtone.play();
+                // On API < 28 Ringtone may not loop — start a watchdog re-trigger via MediaPlayer fallback if needed
+                if (Build.VERSION.SDK_INT < 28) {
+                    // also start looping MediaPlayer in parallel if possible
+                    if (!startMediaPlayer(uri, path)) {
+                        // keep ringtone non-looping as best effort
+                    } else {
+                        try { ringtone.stop(); } catch (Exception ignored) {}
+                        ringtone = null;
+                    }
+                }
+                return;
+            }
+        } catch (Exception ignored) {}
+
+        // 2) MediaPlayer with local file or URI
+        if (startMediaPlayer(uri, path)) return;
+
+        // 3) Absolute last resort: default alarm
+        try {
+            ringtone = RingtoneManager.getRingtone(this, Settings.System.DEFAULT_ALARM_ALERT_URI);
+            if (ringtone != null) {
+                if (Build.VERSION.SDK_INT >= 28) ringtone.setLooping(true);
+                ringtone.play();
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private boolean startMediaPlayer(Uri uri, String path) {
+        // Try local file path first
+        if (path != null) {
+            try {
+                MediaPlayer mp = new MediaPlayer();
+                mp.setDataSource(path);
+                applyAlarmAudio(mp);
+                mp.setLooping(true);
+                mp.setVolume(1f, 1f);
+                mp.prepare();
+                mp.start();
+                player = mp;
+                return true;
+            } catch (Exception ignored) {}
+        }
+        // Then content URI
+        if (uri != null) {
+            try {
+                MediaPlayer mp = new MediaPlayer();
+                mp.setDataSource(this, uri);
+                applyAlarmAudio(mp);
+                mp.setLooping(true);
+                mp.setVolume(1f, 1f);
+                mp.prepare();
+                mp.start();
+                player = mp;
+                return true;
+            } catch (Exception ignored) {}
+        }
+        return false;
+    }
+
+    private void applyAlarmAudio(MediaPlayer mp) {
+        if (Build.VERSION.SDK_INT >= 21) {
+            mp.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build());
+        } else {
+            mp.setAudioStreamType(AudioManager.STREAM_ALARM);
         }
     }
 
     private void stopPlayerOnly() {
+        try {
+            if (ringtone != null) {
+                if (ringtone.isPlaying()) ringtone.stop();
+            }
+        } catch (Exception ignored) {}
+        ringtone = null;
         try {
             if (player != null) {
                 if (player.isPlaying()) player.stop();
@@ -674,9 +778,7 @@ public class DayFlowAlarmService extends Service {
 
     private void shutdown() {
         stopPlayerOnly();
-        try {
-            stopForeground(true);
-        } catch (Exception ignored) {}
+        try { stopForeground(true); } catch (Exception ignored) {}
         try {
             NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             nm.cancel(NOTIF_ID);
@@ -703,9 +805,7 @@ public class DayFlowAlarmService extends Service {
             i.setAction(ACTION_STOP);
             c.startService(i);
         } catch (Exception e) {
-            try {
-                c.stopService(new Intent(c, DayFlowAlarmService.class));
-            } catch (Exception ignored) {}
+            try { c.stopService(new Intent(c, DayFlowAlarmService.class)); } catch (Exception ignored) {}
         }
     }
 }

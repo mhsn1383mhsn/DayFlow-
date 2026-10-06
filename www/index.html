@@ -302,11 +302,13 @@ async function pickPhoneSound(kind){
     await nChannel();
     await nRefreshPerm();
     if(setOpen)openSet(1);
+    nNativeStatus=r;
     var has=kind==='alarm'?(r&&r.alarmSound):(r&&r.notificationSound);
+    var localOk=kind==='alarm'&&r&&r.alarmLocalBytes>0;
     if(has){
-      toast(kind==='alarm'?'✓ صدای آلارم ذخیره شد — با «تست صدا» بررسی کن':'✓ صدای اعلان ذخیره شد',3000);
+      toast((kind==='alarm'?'✓ آلارم ذخیره شد':'✓ اعلان ذخیره شد')+(localOk?' + فایل':'')+' — تست صدا را بزن',3500);
     }else{
-      toast('⚠ صدا ذخیره نشد؛ دوباره انتخاب کن',3500);
+      toast('⚠ ذخیره نشد (kind='+(r&&r.savedKind||'?')+')؛ دوباره انتخاب کن',4000);
     }
     nSync();
   }catch(e){
@@ -721,7 +723,7 @@ function openSet(keep){const y=keep?$('#sh').scrollTop:0,c=S.set,ns=NATIVE?(nPer
  <div class="sg">ظاهر</div><label>تم</label>${chips('s_theme',[['dark','تیره'],['light','روشن'],['auto','خودکار (مثل گوشی)']],c.theme)}<label>اندازهٔ نوشته‌ها</label>${chips('s_fs',[['s','کوچک'],['m','متوسط'],['l','بزرگ']],c.fs)}
  <div class="sg">صدا و لرزش هشدار</div>${sw('sound','صدای هشدار')}<label>صدای داخل برنامه ${NATIVE?'(فقط تست/وب — زنگ واقعی از گوشی پخش می‌شود)':''}</label>${chips('s_tone',[['classic','کلاسیک'],['soft','ملایم'],['urgent','تند و بلند']],c.tone)}
  <div class="hint" style="margin-top:8px">صداهای سیستم (آلارم/اعلان): ${NATIVE?(nNativeStatus&&nNativeStatus.alarmSound?'⏰ سفارشی':'⏰ پیش‌فرض')+' · '+(nNativeStatus&&nNativeStatus.notificationSound?'🔔 سفارشی':'🔔 پیش‌فرض'):'فقط در نسخهٔ اندروید'}</div>
- <div class="hint" style="opacity:.7;font-size:11px">تشخیص: ${NATIVE?'✅ Native':'⛔ Web'} · پلاگین صدا: ${_ensurePlugin('DayFlowNative')?'✅':'⛔'} · پلتفرم: ${CAP&&CAP.getPlatform?CAP.getPlatform():'?'} · Capacitor: ${CAP?'✅':'⛔'}</div>
+ <div class="hint" style="opacity:.7;font-size:11px">تشخیص: ${NATIVE?'✅ Native':'⛔ Web'} · پلاگین: ${_ensurePlugin('DayFlowNative')?'✅':'⛔'} · آلارم URI: ${nNativeStatus&&nNativeStatus.alarmSound?'✅':'⛔'} · فایل محلی: ${nNativeStatus&&nNativeStatus.alarmLocalBytes>0?('✅ '+Math.round(nNativeStatus.alarmLocalBytes/1024)+'KB'):'⛔'}</div>
  <div class="two" style="margin-top:8px"><button class="btn g" onclick="pickPhoneSound('alarm')">⏰ انتخاب صدای آلارم</button><button class="btn g" onclick="pickPhoneSound('notification')">🔔 انتخاب صدای اعلان</button></div>
  <div class="hint">از لیست زنگ‌های گوشی انتخاب کن؛ این صدا بیرون از برنامه هم برای زنگ‌ها پخش می‌شود.</div>
  <div class="two" style="margin-top:6px"><button class="btn g" onclick="resetPhoneSound('alarm')">↩️ صدای آلارم پیش‌فرض</button><button class="btn g" onclick="resetPhoneSound('notification')">↩️ صدای اعلان پیش‌فرض</button></div>
