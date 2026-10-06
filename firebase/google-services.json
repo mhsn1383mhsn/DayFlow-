@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "616628450687",
+    "project_id": "dayflow-2f339",
+    "storage_bucket": "dayflow-2f339.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:616628450687:android:683cc3e1e35dc0d542964a",
+        "android_client_info": {
+          "package_name": "app.dayflow.planner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "616628450687-m0emntf203ma4tlfgllbisjs359tstgk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.dayflow.planner",
+            "certificate_hash": "12ff973f0b5d871bffcc3a9b5ebb0a0a30b68b88"
+          }
+        },
+        {
+          "client_id": "616628450687-jvu3gqt6e013tk1uf8o0q7r2i863lse4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsgZyuRHDzpG8gKduDHW14LhwqvQcsXAY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "616628450687-jvu3gqt6e013tk1uf8o0q7r2i863lse4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

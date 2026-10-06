@@ -1,0 +1,23 @@
+{
+  "appId": "app.dayflow.planner",
+  "appName": "DayFlow",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#03070C"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_dayflow",
+      "iconColor": "#178BFF"
+    },
+    "FirebaseAuthentication": {
+      "skipNativeAuth": true,
+      "providers": [
+        "google.com"
+      ]
+    }
+  }
+}

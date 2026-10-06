@@ -1,0 +1,28 @@
+{
+  "name": "dayflow-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DayFlow — برنامه‌ریز شمسی (اپ اندروید با Capacitor)",
+  "scripts": {
+    "android:add": "npm run vendor && cap add android && node scripts/patch-android.js && capacitor-assets generate --android && cap sync android",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android",
+    "android:apk": "cd android && ./gradlew assembleDebug",
+    "vendor": "node scripts/copy-vendor.js"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/filesystem": "^6.0.0",
+    "@capacitor/local-notifications": "^6.0.0",
+    "@capacitor/share": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0",
+    "@capacitor-firebase/authentication": "^6.0.0",
+    "firebase": "^10.14.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.0",
+    "@capacitor/cli": "^6.0.0"
+  }
+}

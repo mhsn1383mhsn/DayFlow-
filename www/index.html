@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>DayFlow</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#03070C" id="tc">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#02050B;--p:#050B16;--p2:#07111F;--p3:#0A1728;--b:#1677E8;--b2:#7199D8;--t:#EEF3FC;--m:#71809A;--ok:#3BCFA7;--bad:#F05B76;--ln:rgba(91,139,210,.14)}
+body.light{--bg:#EEF4FF;--p:#FFFFFF;--p2:#F3F6FF;--p3:#E5ECFF;--b:#287DFF;--b2:#5E7DFF;--t:#10182B;--m:#61708D;--ln:rgba(38,83,160,.13)}
+body.fs-s{zoom:.92}body.fs-l{zoom:1.12}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg)}
+body{margin:0;background:radial-gradient(800px 500px at 72% -5%,rgba(22,92,190,.12),transparent 62%),radial-gradient(700px 500px at 18% 30%,rgba(45,45,150,.035),transparent 65%),var(--bg);color:var(--t);font-family:Vazirmatn,Tahoma,sans-serif;min-height:100vh;padding-bottom:84px}
+body.light{background:linear-gradient(180deg,#F7FAFF,var(--bg))}
+html.light,body.light{background:#F7FAFF}
+button,input,textarea{font-family:inherit;color:inherit}button{border:0;background:none;cursor:pointer}
+.app{max-width:900px;margin:auto;padding:0 14px}
+.top{display:flex;position:relative;z-index:2;justify-content:space-between;align-items:center;padding:18px 0 10px;gap:12px;min-height:58px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.top h1{font-size:17px;margin:0;font-weight:900;display:flex;align-items:center;gap:9px;white-space:nowrap}
+.top small{color:var(--m);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex:0 0 auto}
+@media(max-width:520px){.top{gap:7px;padding-top:14px}.brand{gap:7px}.top h1{font-size:16px;gap:7px}.top small{display:none}.tr{gap:5px}.tr .chip{padding:6px 9px}.tr .chip.ic{padding:6px 9px}.tr #clk{font-size:11px;padding-inline:9px}}
+.chip{background:var(--p);border:1px solid var(--ln);border-radius:20px;padding:7px 13px;font-size:12px;font-weight:700;color:var(--b2)}
+.chip.ic{padding:6px 10px;font-size:16px;line-height:1.2}
+.card{background:linear-gradient(145deg,var(--p2),var(--p));box-shadow:inset 0 1px 0 rgba(255,255,255,.025);border:1px solid var(--ln);border-radius:18px;padding:14px;margin-bottom:12px}
+.nav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.nav h2{flex:1;margin:0;font-size:15px;font-weight:900;text-align:center}
+.ib{width:38px;height:38px;border-radius:11px;background:var(--p);border:1px solid var(--ln);color:var(--b2);font-size:16px}
+.btn{background:linear-gradient(135deg,#126ED8,#4B43C8);color:#fff;border-radius:12px;padding:10px 16px;font-weight:800;font-size:13px}
+.btn:disabled{opacity:.45;cursor:default}.btn.g{background:var(--p3);color:var(--t)}.btn.r{background:linear-gradient(135deg,#FF6680,#B8203E)}
+.bar{height:7px;background:var(--p3);border-radius:6px;overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:linear-gradient(90deg,#126ED8,#5146C7);transition:width .4s}
+.hr{display:grid;grid-template-columns:62px minmax(0,1fr);gap:12px;border-top:1px solid rgba(91,139,210,.10);min-height:58px;padding:8px 0;cursor:pointer;transition:.18s}.hr:first-child{border-top:0}.hr:hover{background:rgba(40,110,210,.035);border-radius:12px}.hr.now{background:linear-gradient(90deg,rgba(30,120,235,.10),transparent);border-radius:12px}.hl{width:auto;font-size:12px;color:#6F7F99;font-weight:800;padding-top:7px;flex:none;text-align:left;direction:ltr;letter-spacing:.2px}.hr.now .hl{color:#86B7FF}.hc{min-width:0;display:flex;flex-direction:column;gap:6px;min-height:42px}.hc:empty:after{content:'＋ افزودن برنامه';display:block;color:rgba(113,128,154,.48);font-size:10px;padding:7px 10px;border:1px dashed rgba(91,139,210,.10);border-radius:10px;opacity:0;transition:.18s}.hr:hover .hc:empty:after{opacity:1}
+.tk{display:flex;align-items:center;gap:8px;border-radius:12px;padding:9px 11px;border-inline-start:4px solid var(--c);background:var(--p3);font-size:13px}
+.tk.d .tt{text-decoration:line-through;opacity:.5}.tk .tt{flex:1;font-weight:700}.tk small{color:var(--m);font-size:10.5px;display:block;font-weight:400}
+.ck{width:22px;height:22px;border-radius:7px;border:2px solid var(--c);flex:none;color:#fff;font-size:13px;line-height:1}.d .ck{background:var(--c)}
+.x{color:var(--m);font-size:15px;padding:2px 6px}
+textarea,input[type=text],input[type=time],input[type=number],input[type=search]{width:100%;background:var(--p2);border:1px solid var(--ln);border-radius:12px;padding:11px 13px;font-size:14px;outline:none}
+textarea{min-height:110px;resize:vertical;line-height:1.9}textarea:focus,input:focus{border-color:var(--b)}
+input[type=range]{width:100%;accent-color:var(--b)}
+.wk{display:grid;gap:10px}.wd{cursor:pointer}.wd.today{border-color:var(--b)}.wd h3{margin:0 0 8px;font-size:13px;display:flex;justify-content:space-between}
+.wd .tk{margin-bottom:5px}.mt{color:var(--m);font-size:12px}
+.mg{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center}.mg .h{font-size:11px;color:var(--m);padding:4px 0;font-weight:700}
+.mc{aspect-ratio:1;border-radius:12px;background:var(--p2);border:1px solid var(--ln);font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.mc.today{background:linear-gradient(135deg,#126ED8,#4B43C8);color:#fff}.mc.sel{outline:2px solid var(--b2)}.mc.off{opacity:.25;pointer-events:none}.mc.fri,.mc.holiday{color:var(--bad)}.mc.holiday{border-color:rgba(255,102,128,.55);background:rgba(255,102,128,.08)}.mc.today.holiday{background:linear-gradient(135deg,#126ED8,#4B43C8);color:#fff;border-color:#FF6680}.holidayTag{font-size:9px;color:var(--bad);font-weight:900}.wd.holiday{border-color:rgba(255,102,128,.55)}.wd.holiday h3{color:var(--bad)}
+.dots{display:flex;gap:2px;height:5px}.dots i{width:5px;height:5px;border-radius:50%;background:var(--ok)}.dots i.n{background:var(--b2)}.dots i.r{background:#FFB020}.dots i.h{background:var(--bad)}
+.row{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--ln)}.row:first-child{border:0}.row .i{flex:1;min-width:0}.row b{display:block;font-size:14px}.row small{color:var(--m);font-size:11px;line-height:1.7;display:block}
+.row.done b{text-decoration:line-through;opacity:.5}.row.late small{color:var(--bad)}.row.tap{cursor:pointer}
+.sw{width:46px;height:26px;border-radius:14px;background:var(--p3);position:relative;flex:none}.sw:after{content:'';position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:var(--m);transition:.2s}.sw.on{background:var(--b)}.sw.on:after{right:23px;background:#fff}
+.big{font-size:54px;font-weight:900;text-align:center;letter-spacing:1px;direction:ltr;background:linear-gradient(180deg,var(--t),var(--b2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2}
+.cen{text-align:center;color:var(--m);font-size:13px;margin-bottom:6px}
+.sg{font-size:12.5px;color:var(--b2);font-weight:900;margin:20px 0 2px}
+.hint{font-size:11.5px;color:var(--m);line-height:1.9;margin:4px 0}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:4px 0 6px}
+.ch{background:var(--p3);border:1px solid var(--ln);border-radius:20px;padding:7px 13px;font-size:12px;font-weight:700;color:var(--m)}
+.ch.on{background:rgba(23,139,255,.20);border-color:var(--b);color:var(--b2)}
+.tabbar{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(2,7,14,.96);backdrop-filter:blur(16px);border-top:1px solid var(--ln);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:20}
+body.light .tabbar{background:rgba(255,255,255,.94)}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;border-radius:12px;color:var(--m);font-size:10px;font-weight:700;position:relative}.tb span{font-size:18px}.tb.on{color:var(--b2);background:rgba(23,139,255,.12)}
+.tb.routine-tab{margin:0;padding:7px 2px;border-radius:12px;background:transparent;border:1px solid transparent;color:var(--m);box-shadow:none}
+.tb.routine-tab span{width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;background:var(--p3);border:1px solid var(--ln);color:var(--m)}
+.tb.routine-tab em{font-style:normal;font-weight:700}
+.tb.routine-tab.on{background:linear-gradient(145deg,rgba(23,139,255,.18),rgba(85,214,190,.10));border-color:rgba(23,139,255,.32);color:var(--b2);box-shadow:0 5px 16px rgba(0,90,180,.12)}
+.tb.routine-tab.on span{background:linear-gradient(135deg,#126ED8,#4B43C8);border-color:transparent;color:#fff}
+.tb:focus{outline:none}.tb:focus-visible{outline:2px solid rgba(90,153,249,.35);outline-offset:2px}
+.bd{position:absolute;top:2px;left:50%;margin-left:6px;min-width:17px;height:17px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;font-weight:900;display:none;align-items:center;justify-content:center;padding:0 4px}
+@media(min-width:901px){body{padding:0 96px 24px 0}.tabbar{right:14px;left:auto;top:50%;bottom:auto;transform:translateY(-50%);width:72px;flex-direction:column;gap:6px;border:1px solid var(--ln);border-radius:20px}.wk{grid-template-columns:repeat(2,1fr)}}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:50}.ov.on{display:flex}
+.sh{background:var(--p);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto;border:1px solid var(--ln);position:relative;overscroll-behavior:contain;touch-action:pan-y}.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}.sheet-head h3{margin:0}.sheet-close{width:36px;height:36px;border-radius:11px;background:var(--p3);border:1px solid var(--ln);color:var(--m);font-size:20px;line-height:1;flex:none}.sheet-close:hover{color:var(--t);background:rgba(23,139,255,.12)}
+.sh h3{margin:0 0 12px;font-size:15px}.sh label{display:block;font-size:11.5px;color:var(--m);margin:10px 0 5px;font-weight:700}.two{display:flex;gap:10px}.two>div{flex:1}
+.cols{display:flex;gap:10px;margin:6px 0 14px}.cols i{width:30px;height:30px;border-radius:50%;background:var(--c);cursor:pointer;border:3px solid transparent}.cols i.on{border-color:var(--t)}
+.toast{position:fixed;top:14px;left:50%;transform:translate(-50%,-90px);background:linear-gradient(135deg,#126ED8,#4B43C8);color:#fff;padding:13px 20px;border-radius:16px;font-weight:800;font-size:13px;z-index:200;transition:.35s;max-width:90%;text-align:center;box-shadow:0 10px 30px rgba(12,60,130,.28)}.toast.on{transform:translate(-50%,0)}
+.empty{text-align:center;color:var(--m);padding:26px 10px;font-size:13px}
+.fab{position:fixed;bottom:92px;left:18px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#126ED8,#4B43C8);color:#fff;font-size:28px;box-shadow:0 10px 26px rgba(12,60,130,.28);z-index:19}
+.routine-event{display:flex;align-items:center;gap:8px;padding:7px 9px;margin:3px 0;border-radius:10px;background:color-mix(in srgb,var(--rc) 12%,var(--p3));border:1px solid color-mix(in srgb,var(--rc) 42%,transparent);font-size:12px;cursor:pointer}.routine-event .recheck{width:19px;height:19px;border-radius:6px;border:1.5px solid var(--rc);display:flex;align-items:center;justify-content:center;color:#fff;flex:none;font-size:11px}.routine-event.done{opacity:.6}.routine-event.done .retitle{text-decoration:line-through}.routine-event .retitle{font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis}.routine-event small{color:var(--m);margin-right:auto;white-space:nowrap}.routine-event .reedit{border:0;background:transparent;color:var(--m);padding:2px 4px;cursor:pointer}.routine-dot{background:#55D6BE!important}.rg{display:grid;gap:9px}.routine{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid var(--ln);background:var(--p3);border-radius:14px;cursor:pointer}
+.routine.done{opacity:.58}.routine.done .rtitle{text-decoration:line-through}.rcheck{width:28px;height:28px;border-radius:9px;border:2px solid var(--c);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;flex:none}.routine.done .rcheck{background:var(--c)}
+.rmain{flex:1;min-width:0}.rtitle{font-size:13px;font-weight:800}.rmeta{font-size:10.5px;color:var(--m);margin-top:3px}.rtime{font-size:11px;color:var(--b2);font-weight:800;direction:ltr}
+.rprog{display:flex;align-items:center;gap:10px}.rprog .bar{flex:1;margin:0}.rscore{font-size:12px;font-weight:900;color:var(--b2);white-space:nowrap}
+.rsection{margin-top:14px}.rsection:first-child{margin-top:0}.rday{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.rday b{font-size:13px}.rday span{font-size:11px;color:var(--m)}
+.rempty{padding:22px 10px;text-align:center;color:var(--m);font-size:12.5px;line-height:1.9}
+
+@media(min-width:901px){.fab{bottom:28px}}
+.bn{background:rgba(23,139,255,.12);border:1px solid var(--b);border-radius:14px;padding:11px 14px;margin-bottom:10px;font-size:12.5px;font-weight:700;line-height:1.8;cursor:pointer}
+.bn.warn{background:rgba(255,102,128,.14);border-color:var(--bad)}
+.al{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:18px;background:radial-gradient(700px 500px at 50% 0,rgba(18,78,160,.12),transparent 65%),var(--bg);overflow:auto}
+.al.on{display:flex}
+.alc{width:100%;max-width:420px;text-align:center;margin:auto}
+.ali{font-size:68px;line-height:1;animation:rg 1s ease-in-out infinite;display:inline-block}
+@keyframes rg{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(14deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(8deg)}}
+.alk{margin-top:12px;font-size:12.5px;color:var(--b2);font-weight:800}
+.alc h2{margin:6px 0 4px;font-size:24px;font-weight:900;line-height:1.5;word-break:break-word}
+.alt{font-size:34px;font-weight:900;direction:ltr;color:var(--b2)}
+.alc p{margin:4px 0;color:var(--m);font-size:13.5px;line-height:1.9}
+.alr{font-size:12px;color:var(--bad);font-weight:700;margin:4px 0}
+.alc .btn{width:100%;padding:15px;font-size:16px;margin-top:10px}
+.snr{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+.snr .ch{padding:10px 14px;font-size:13px}.snr .ch.on{border-color:var(--b)}
+.mute{margin-top:16px;color:var(--m);font-size:12.5px;font-weight:700;padding:8px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.today-actions{display:grid;grid-template-columns:1.35fr .8fr .8fr;gap:8px;margin-top:12px}.today-actions .btn{font-size:11.5px;padding:10px 6px}.free-tasks{margin-bottom:10px;padding:10px;border:1px dashed var(--ln);border-radius:14px;background:color-mix(in srgb,var(--b2) 5%,var(--p3))}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:12px}.section-title span{color:var(--m);font-size:10px}.free-toggle{display:flex;align-items:center;gap:8px;padding:10px 11px;margin-top:10px;border:1px solid var(--ln);border-radius:12px;background:var(--p3);cursor:pointer}.free-toggle input{accent-color:var(--b2)}@media(max-width:520px){.today-actions{grid-template-columns:1fr 1fr 1fr}}
+</style>
+
+<style id="df-user-app-icon">
+.brand h1{display:flex;align-items:center;gap:9px}
+.df-user-app-icon{width:34px;height:34px;border-radius:9px;object-fit:cover;flex:0 0 34px;
+box-shadow:0 4px 16px rgba(76,139,232,.22)}
+@media(max-width:520px){.df-user-app-icon{width:31px;height:31px;flex-basis:31px;border-radius:8px}}
+</style>
+
+<style id="df-clean-icon">
+.brand h1{display:flex;align-items:center;gap:9px}
+.df-clean-icon{width:34px;height:34px;border-radius:9px;object-fit:cover;flex:0 0 34px;
+box-shadow:none;background:transparent}
+@media(max-width:520px){.df-clean-icon{width:31px;height:31px;flex-basis:31px;border-radius:8px}}
+</style>
+
+<style id="df-motion">
+:root{--ease:cubic-bezier(.22,.8,.24,1)}
+@keyframes vIn{from{opacity:0;transform:translate(var(--dx,0),12px)}to{opacity:1;transform:none}}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}@keyframes ovOut{from{opacity:1}to{opacity:0}}
+@keyframes shUp{from{transform:translateY(46px);opacity:.4}to{transform:none;opacity:1}}@keyframes shDown{from{transform:none}to{transform:translateY(46px);opacity:.4}}
+@keyframes alIn{from{opacity:0}to{opacity:1}}@keyframes alcIn{from{opacity:0;transform:scale(.93) translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.45)}55%{transform:scale(1.28)}100%{transform:scale(1)}}
+@keyframes newIn{from{opacity:0;transform:translateY(-8px) scale(.97);background-color:color-mix(in srgb,var(--b) 32%,var(--p3))}to{opacity:1;transform:none}}
+@keyframes barGrow{from{width:0}}
+@keyframes tbPop{0%{transform:scale(.7) translateY(3px)}60%{transform:scale(1.2)}100%{transform:none}}
+@keyframes bnIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+#v.enter>*{animation:vIn .4s var(--ease) both}
+#v.enter>:nth-child(2){animation-delay:.04s}#v.enter>:nth-child(3){animation-delay:.08s}#v.enter>:nth-child(4){animation-delay:.12s}#v.enter>:nth-child(5){animation-delay:.16s}#v.enter>:nth-child(n+6){animation-delay:.2s}
+#v.enter .wk>.card{animation:vIn .42s var(--ease) both}#v.enter .wk>.card:nth-child(2){animation-delay:.05s}#v.enter .wk>.card:nth-child(3){animation-delay:.1s}#v.enter .wk>.card:nth-child(4){animation-delay:.15s}#v.enter .wk>.card:nth-child(5){animation-delay:.2s}#v.enter .wk>.card:nth-child(6){animation-delay:.25s}#v.enter .wk>.card:nth-child(7){animation-delay:.3s}
+#v.enter .bar i{animation:barGrow .8s var(--ease) .15s both}
+.ov.on{animation:ovIn .22s ease both}.ov.on .sh{animation:shUp .36s var(--ease) both}
+.ov.on.out{animation:ovOut .19s ease both}.ov.on.out .sh{animation:shDown .19s ease-in both}
+.al.on{animation:alIn .3s ease both}.al.on .alc{animation:alcIn .5s var(--ease) both}
+.ck.pop,.rcheck.pop,.recheck.pop{animation:pop .38s var(--ease)}
+.is-new{animation:newIn .55s var(--ease)}
+.tb.on span{animation:tbPop .42s var(--ease)}
+.bn{animation:bnIn .35s var(--ease)}
+.btn,.ib,.chip,.ch,.tb,.mc,.fab,.x,.sw,.routine,.routine-event,.tk,.row.tap,.card.wd,.ck,.rcheck{transition:transform .17s var(--ease),background-color .22s,border-color .22s,color .22s,box-shadow .22s,opacity .22s,filter .2s}
+.btn:active,.ib:active,.chip:active,.ch:active,.tb:active,.mc:active,.fab:active,.x:active{transform:scale(.93)}
+.routine:active,.row.tap:active,.card.wd:active{transform:scale(.985)}
+.btn.g.on{background:rgba(23,139,255,.2);color:var(--b2);box-shadow:inset 0 0 0 1px var(--b)}
+.toast{transition:transform .5s cubic-bezier(.34,1.35,.5,1),opacity .3s}
+.bar i{transition:width .6s var(--ease)}
+body.theming,body.theming *{transition:background-color .4s ease,color .4s ease,border-color .4s ease!important}
+@media(hover:hover){.btn:hover{filter:brightness(1.1)}.ib:hover,.chip:hover,.ch:hover,.mc:hover{border-color:var(--b)}.card.wd:hover,.routine:hover{border-color:rgba(23,139,255,.4)}}
+@media(prefers-reduced-motion:reduce){#v.enter>*,.ov.on,.ov.on .sh,.al.on,.al.on .alc,.is-new,.tb.on span,.bn,.ck.pop,.rcheck.pop,.recheck.pop{animation:none!important}}
+</style>
+
+<style id="df-today">
+.hero{display:flex;align-items:center;gap:14px}.ring{position:relative;width:68px;height:68px;flex:none}.ring svg{transform:rotate(-90deg);display:block}.rfg{transition:stroke-dasharray .7s var(--ease),stroke .3s}
+.ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--t)}
+.hero-t{min-width:0}.hero-t>b{font-size:15px;display:block}.hero-n{font-size:12px;color:var(--m);margin-top:5px;line-height:1.8}.hero-n b{color:var(--b2)}
+.hero-act{display:flex;gap:8px;margin-top:14px}.hero-act .btn:first-child{flex:1}.hero-act .more{width:46px;padding:10px 0;font-size:18px;line-height:1}
+.nav h2 .holidayTag{display:block;font-size:10.5px;font-weight:700}
+.hr{position:relative}
+.hr.now .hl{align-self:flex-start;margin-top:3px;padding:6px 0 5px;border-radius:12px;text-align:center;color:#fff;background:linear-gradient(135deg,#1A8CFF,#5B4BE0);box-shadow:0 4px 14px rgba(40,110,255,.35);animation:nowGlow 2.6s ease-in-out infinite}
+.nowtag{display:block;margin-top:2px;font-size:9px;font-weight:800;opacity:.92;letter-spacing:0}
+@keyframes nowGlow{0%,100%{box-shadow:0 4px 14px rgba(40,110,255,.35)}50%{box-shadow:0 4px 22px rgba(91,75,224,.55)}}
+@media(prefers-reduced-motion:reduce){.hr.now .hl{animation:none}}
+.gap{display:flex;align-items:center;gap:10px;padding:11px 4px;border-top:1px dashed var(--ln);color:var(--m);font-size:11.5px;cursor:pointer}.gap .gd{width:46px;text-align:center;letter-spacing:2px;font-weight:900;color:var(--b2);flex:none}.gap:hover{color:var(--t)}.gap:active{transform:scale(.99)}
+.bn.slim{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;font-size:12px;line-height:1.6;background:rgba(23,139,255,.09);border-color:var(--ln)}.bnx{color:var(--m);font-size:14px;padding:2px 7px;flex:none}
+@keyframes ringGrow{from{stroke-dasharray:0 100}}#v.enter .rfg{animation:ringGrow .9s var(--ease) .2s both}
+@media(prefers-reduced-motion:reduce){#v.enter .rfg{animation:none!important}}
+.tk.d .tt{text-decoration:none}.tk.d .tn{text-decoration:line-through}
+</style>
+
+<style id="df-sections">
+.wstrip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.wcol{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 7px;border-radius:12px;border:1px solid transparent;color:var(--m);font-size:10.5px;font-weight:700}
+.wcol b{font-size:12px;color:var(--t)}.wcol.hol span,.wcol.hol b{color:var(--bad)}
+.wcol.today{background:rgba(23,139,255,.14);border-color:rgba(23,139,255,.4)}
+.wbar{height:54px;width:14px;border-radius:7px;background:var(--p3);display:flex;align-items:flex-end;overflow:hidden}
+.wbar i{display:block;width:100%;border-radius:7px;background:rgba(23,139,255,.35);position:relative;transform-origin:bottom}
+.wbar u{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(0deg,var(--b),var(--ok));border-radius:7px;display:block}
+@keyframes growY{from{transform:scaleY(0)}}#v.enter .wbar i{animation:growY .7s var(--ease) .15s both}
+.wd-empty{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 14px;border:1px dashed var(--ln);border-radius:14px;font-size:12.5px;font-weight:700;color:var(--m);cursor:pointer;transition:transform .17s var(--ease),border-color .2s}
+.wd-empty small{font-weight:400;font-size:11px;opacity:.8}.wd-empty.today{border-color:var(--b);color:var(--b2)}.wd-empty:active{transform:scale(.985)}
+.mstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.mstats div{background:linear-gradient(145deg,var(--p2),var(--p));border:1px solid var(--ln);border-radius:14px;padding:10px 6px;text-align:center}
+.mstats b{display:block;font-size:19px;font-weight:900;color:var(--b2)}.mstats span{font-size:10.5px;color:var(--m)}
+.mc:not(.today):not(.off){background:color-mix(in srgb,var(--b) calc(var(--h,0)*30%),var(--p2))}
+.pv{animation:newIn .4s var(--ease)}.pvn{margin-top:8px;padding:9px 11px;border-radius:11px;background:var(--p3);font-size:12px;line-height:1.8;color:var(--m)}
+.nhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px}.nhead b{display:block;font-size:15px}
+.nmon{font-size:12px;font-weight:900;color:var(--b2);margin:16px 2px 8px}.nmon:first-child{margin-top:4px}
+.ncard{cursor:pointer;transition:transform .17s var(--ease),border-color .2s}.ncard:active{transform:scale(.985)}.ncard:hover{border-color:rgba(23,139,255,.4)}
+.nh{display:flex;justify-content:space-between;align-items:center;gap:8px}.nh b{font-size:13px;color:var(--t)}
+.nrel{font-size:10.5px;font-weight:800;color:var(--b2);background:rgba(23,139,255,.14);padding:3px 9px;border-radius:10px}
+.nb{white-space:pre-wrap;font-size:13px;line-height:1.95;margin-top:7px;color:var(--m);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.nf{font-size:10.5px;color:var(--m);opacity:.7;margin-top:6px}
+mark{background:rgba(255,176,32,.35);color:inherit;border-radius:4px;padding:0 2px}
+.l7{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.l7d{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10.5px;color:var(--m);font-weight:700;cursor:pointer;padding:4px 0;border-radius:10px}
+.l7d i{width:26px;height:26px;border-radius:50%;border:2px solid var(--ln);display:block;transition:all .3s var(--ease)}
+.l7d.part i{border-color:var(--b);background:linear-gradient(90deg,var(--b) 50%,transparent 50%)}.l7d.full i{border-color:var(--ok);background:var(--ok);box-shadow:0 0 10px rgba(59,207,167,.4)}
+.l7d.cur{background:rgba(23,139,255,.12)}
+.streak{display:inline-block;margin-top:2px;font-weight:900;color:#FFB020}
+.rg{display:flex;flex-direction:column;gap:8px}.routine{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:var(--p3);border:1px solid var(--ln);cursor:pointer;border-inline-start:4px solid var(--c)}
+.nextrem{text-align:center;background:linear-gradient(145deg,rgba(23,139,255,.16),var(--p))}.nextrem b{display:block;font-size:17px;margin:6px 0 2px}.nextrem .cd{font-size:26px;font-weight:900;color:var(--b2);margin:4px 0}
+.clk-card{display:flex;align-items:center;gap:14px}.aclk{width:112px;height:112px;flex:none;filter:drop-shadow(0 6px 16px rgba(0,80,200,.18))}
+.hand{transition:transform .35s var(--ease)}.aclk line,.aclk circle{transform-origin:50px 50px}#sh2{transition:none}
+.clk-t{flex:1;min-width:0}.clk-card .big{font-size:36px;text-align:right}.clk-card .cen{text-align:right}
+.tring{position:relative;width:190px;height:190px;margin:8px auto 4px}.tring svg{display:block}.tring #tmr{transition:stroke-dasharray 1s linear}
+.tmc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}.tmc small{color:var(--m);font-size:11px}
+.row.off .i{opacity:.5}.row .dd{display:flex;gap:4px;margin-top:6px}.row .dd i{font-style:normal;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--m);background:var(--p3)}.row .dd i.on{background:rgba(23,139,255,.22);color:var(--b2)}.row .dd em{font-size:11px;color:var(--m);font-style:normal}
+.cf{position:fixed;inset:0;pointer-events:none;z-index:150;overflow:hidden}.cf i{position:absolute;top:58%;width:8px;height:13px;border-radius:2px;opacity:0;animation:cfly 1.6s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes cfly{0%{opacity:1;transform:translate(0,0) rotate(0)}35%{opacity:1;transform:translate(calc(var(--x)*.6),var(--y)) rotate(calc(var(--r)*.4))}100%{opacity:0;transform:translate(var(--x),420px) rotate(var(--r))}}
+@media(prefers-reduced-motion:reduce){#v.enter .wbar i{animation:none!important}.cf{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><div class="brand"><h1><img class="df-clean-icon" src="icon-192.png" alt="" aria-hidden="true">DayFlow</h1><small id="sub"></small></div><div class="tr"><button class="chip ic" id="th" aria-label="تغییر تم روشن/تیره">🌓</button><button class="chip ic" id="gear" aria-label="تنظیمات">⚙️</button><div class="chip" id="clk"></div></div></div>
+  <div id="mb"></div>
+  <main id="v"></main>
+</div>
+<button class="fab" id="fab" aria-label="افزودن">+</button>
+<nav class="tabbar" id="tb">
+  <button class="tb on" data-t="day"><span>📅</span>امروز</button>
+  <button class="tb" data-t="week"><span>🗓️</span>هفته</button>
+  <button class="tb" data-t="month"><span>📆</span>ماه</button>
+  <button class="tb routine-tab" data-t="routine"><span>✓</span><em>روتین</em></button>
+  <button class="tb" data-t="notes"><span>📝</span>یادداشت</button>
+  <button class="tb" data-t="rem"><span>🔔</span>یادآوری<b class="bd" id="bd"></b></button>
+  <button class="tb" data-t="time"><span>⏱️</span>ساعت</button>
+</nav>
+<div class="ov" id="ov"><div class="sh" id="sh"></div></div>
+<div class="al" id="al" role="alertdialog" aria-live="assertive"><div class="alc">
+  <div class="ali" id="al_i">🔔</div><div class="alk" id="al_k"></div><h2 id="al_t"></h2><div class="alt" id="al_tm"></div><p id="al_b"></p><div class="alr" id="al_r"></div>
+  <div id="al_p"></div><div class="snr" id="al_s"></div>
+  <button class="mute" id="al_mu" onclick="alAct('mute')">🔇 بی‌صدا کن (هشدار می‌ماند)</button><div class="alr" id="al_more"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script>
+/* ===== Android bridge (Capacitor) — در مرورگر غیرفعال است ===== */
+var nNativeStatus=null;var CAP=window.Capacitor,NATIVE=!!(CAP&&typeof CAP.isNativePlatform==='function'&&CAP.isNativePlatform()),NP={},nPerm='prompt',nTm=0;
+if(NATIVE)['LocalNotifications','App','Filesystem','Share','StatusBar','DayFlowCalendar','DayFlowNative','FirebaseAuthentication'].forEach(function(n){try{NP[n]=CAP.registerPlugin(n)}catch(e){}});
+(function(){var a0=alAct,t0=applyTheme;
+ alAct=function(a,v){a0(a,v);if(NATIVE&&a!=='mute'){try{NP.LocalNotifications.removeAllDeliveredNotifications()}catch(e){}}};
+ applyTheme=function(){t0();nStatusBar()}})();
+async function nStatusBar(){if(!NATIVE)return;try{var l=document.body.classList.contains('light');if(NP.StatusBar){await NP.StatusBar.setOverlaysWebView({overlay:false});await NP.StatusBar.setStyle({style:l?'LIGHT':'DARK'});await NP.StatusBar.setBackgroundColor({color:l?'#F7FAFF':'#03070C'});if(NP.StatusBar.setNavigationBarColor)await NP.StatusBar.setNavigationBarColor({color:l?'#F7FAFF':'#03070C'});}}catch(e){}
+}
+async function nRefreshPerm(){if(!NATIVE)return;try{if(NP.DayFlowNative){var st=await NP.DayFlowNative.status();nNativeStatus=st;nPerm=st.notificationsEnabled?'granted':'denied'}else{var r=await NP.LocalNotifications.checkPermissions();nPerm=r.display}}catch(e){}bnSig='';try{bnRender()}catch(e){} }
+async function nChannel(){try{if(NP.DayFlowNative)await NP.DayFlowNative.init({});await NP.LocalNotifications.createChannel({id:'dayflow-alerts',name:'اعلان‌های DayFlow',description:'اعلان‌ها و یادآوری‌های DayFlow',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#178BFF'});await NP.LocalNotifications.createChannel({id:'dayflow-alarms',name:'زنگ‌های DayFlow',description:'زنگ‌های DayFlow با صدای آلارم گوشی',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#FFB020'});}catch(e){} }
+async function nExactEnsure(){try{var r=await NP.LocalNotifications.checkExactNotificationSetting();if(r&&r.exact_alarm==='denied'){toast('برای زنگ دقیق، اجازهٔ «آلارم و یادآوری» را روشن کن',6000);if(NP.DayFlowNative)await NP.DayFlowNative.openExactAlarmSettings();else await NP.LocalNotifications.changeExactNotificationSetting()}}catch(e){} }
+async function nAsk(){try{var r=await NP.LocalNotifications.requestPermissions();nPerm=r.display}catch(e){}await nChannel();await nRefreshPerm();if(nPerm==='granted')await nExactEnsure();bnSig='';try{bnRender()}catch(e){}if(setOpen)openSet(1);nSync()}
+async function fixNotifications(){if(!NATIVE)return;if(nNativeStatus&&nNativeStatus.notificationsEnabled&&(!nNativeStatus.alertChannelEnabled||!nNativeStatus.alarmChannelEnabled)){try{await NP.DayFlowNative.openNotificationSettings()}catch(e){}return}await nAsk()}
+async function pickPhoneSound(kind){if(!NATIVE||!NP.DayFlowNative){toast('این قابلیت فقط در نسخهٔ اندروید فعال است');return}try{var r=await NP.DayFlowNative.pickSound({kind:kind});nNativeStatus=r;await nChannel();await nRefreshPerm();if(setOpen)openSet(1);var has=kind==='alarm'?(r&&r.alarmSound):(r&&r.notificationSound);toast(has?(kind==='alarm'?'✓ صدای آلارم گوشی انتخاب شد':'✓ صدای اعلان گوشی انتخاب شد'):'✓ صدای پیش‌فرض سیستم تنظیم شد',2500);nSync()}catch(e){if(String(e).indexOf('لغو')<0&&String(e).indexOf('cancel')<0)toast('انتخاب صدا انجام نشد: '+(e.message||e),3500)}}
+async function resetPhoneSound(kind){if(!NATIVE||!NP.DayFlowNative){toast('این قابلیت فقط در نسخهٔ اندروید فعال است');return}try{var r=await NP.DayFlowNative.resetSound({kind:kind});nNativeStatus=r;await nChannel();await nRefreshPerm();if(setOpen)openSet(1);toast('صدای پیش‌فرض گوشی برگشت',2200);nSync()}catch(e){toast('بازگردانی صدا ممکن نشد',2500)}}
+function nId(str){var h=7;for(var i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;return Math.abs(h)%2147480000+1}
+function nOcc(now,H){var out=[],td=sd(new Date(now));
+ S.rem.filter(function(r){return!r.fired}).forEach(function(r){var x=Object.assign({},r),g=0;while(x.at<H&&g<60){[0].concat((x.pre||[]).filter(function(m){return m>0})).forEach(function(m){out.push({id:r.id+':'+m,ts:x.at-m*6e4,t:(m?'⏳ ':'🔔 ')+r.t,b:(m?'تا '+preTxt([m])+' دیگر':'')+(r.note?(m?' · ':'')+r.note:'')})});if(r.rep==='none')break;x.at=nextAt(x,x.at);g++}});
+ /* زنگ‌های اصلی توسط AlarmManager بومی زمان‌بندی می‌شوند. */
+ for(var i=0;i<22;i++){var d=addD(td,i),k=key(d);(S.tasks[k]||[]).forEach(function(t){if(t.d||t.allDay||!t.s||!(t.pre||[]).length)return;var h=t.s.split(':'),st=new Date(d.getFullYear(),d.getMonth(),d.getDate(),+h[0],+h[1]).getTime();t.pre.forEach(function(m){out.push({id:t.id+':'+m,ts:st-m*6e4,t:(m?'⏳ ':'📌 ')+t.t,b:(m?'تا '+preTxt([m])+' دیگر · ':'')+hm(+h[0],+h[1])+(t.n?' · '+t.n:'')})})})}
+ if(S.set.sum){var sa=(S.set.sumAt||'07:30').split(':');for(var j=0;j<15;j++){var dd=addD(td,j),n=tasksOf(key(dd)).filter(function(t){return!t.d}).length;out.push({id:'sum:'+key(dd),ts:new Date(dd.getFullYear(),dd.getMonth(),dd.getDate(),+sa[0],+sa[1]).getTime(),t:'🌅 برنامهٔ امروز',b:n?tf(n)+' کار در برنامه داری':'برای امروز چیزی ثبت نشده'})}}
+ return out}
+function nSync(){clearTimeout(nTm);nTm=setTimeout(nSyncNow,1200)}
+async function nSyncNow(){if(!NATIVE)return;try{var LN=NP.LocalNotifications,pm=await LN.checkPermissions();nPerm=pm.display;if(nPerm!=='granted')return;await nChannel();
+ var pend=await LN.getPending();if(pend&&pend.notifications&&pend.notifications.length)await LN.cancel({notifications:pend.notifications.map(function(n){return{id:n.id}})});
+ var now=Date.now(),H=now+21*864e5,list=nOcc(now,H).filter(function(x){return x.ts>now+3000&&x.ts<H}).sort(function(a,b){return a.ts-b.ts}).slice(0,400).map(function(x){return{id:nId(x.id+'@'+x.ts),title:x.t,body:x.b||'',largeBody:x.b||'',schedule:{at:new Date(x.ts),allowWhileIdle:true},channelId:(String(x.t).indexOf('⏰')===0?'dayflow-alarms':'dayflow-alerts'),smallIcon:'ic_stat_dayflow',iconColor:'#178BFF',autoCancel:true,extra:{k:x.id}}});
+ if(list.length)await LN.schedule({notifications:list}); if(NP.DayFlowNative&&NP.DayFlowNative.scheduleAlarms) await NP.DayFlowNative.scheduleAlarms({alarms:phoneAlarmList()})}catch(e){console.warn('nSync',e)}}
+function phoneAlarmList(){var out=[],now=Date.now(),td=sd(new Date());S.alarms.filter(function(a){return a.on}).forEach(function(a){for(var i=0;i<22;i++){var d=addD(td,i);if(a.days.length&&!a.days.includes(wd(d)))continue;var ts=new Date(d.getFullYear(),d.getMonth(),d.getDate(),a.h,a.m).getTime();if(ts>now+3000)out.push({id:a.id+':'+i,baseId:a.id,at:ts,title:a.l||'زنگ',h:a.h,m:a.m,days:a.days});if(!a.days.length)break}});return out}
+
+async function saveFile(name,text,mime){if(NATIVE){try{var w=await NP.Filesystem.writeFile({path:name,data:text,directory:'CACHE',encoding:'utf8'});await NP.Share.share({title:name,files:[w.uri],dialogTitle:'ذخیره یا اشتراک‌گذاری'});return true}catch(e){toast('ذخیرهٔ فایل ممکن نشد');return false}}
+ var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();return true}
+// تقویم مستقیم گوشی: رویداد مستقیماً در Calendar Provider اندروید ثبت می‌شود؛ هیچ فایل ICS یا Sync دستی لازم نیست.
+async function calAdd(x, source){
+ if(!NATIVE||!NP.DayFlowCalendar){toast('این قابلیت فقط داخل نسخهٔ اندروید فعال است');return false}
+ try{
+  const rr=x.rr||'', rem=(x.al&&x.al.length)?x.al:[0];
+  const r=await NP.DayFlowCalendar.addEvent({eventId:source&&source.calEventId?source.calEventId:-1,title:x.title,description:x.desc||'',start:x.start,end:x.end,allDay:!!x.allDay,rrule:rr,reminders:rem});
+  if(source&&r&&r.eventId) source.calEventId=r.eventId;
+  save(); toast('✓ مستقیم در تقویم گوشی ثبت شد',3500); return true;
+ }catch(e){toast('اجازهٔ تقویم را بده و دوباره امتحان کن',4500);return false}
+}
+function calReminder(id){const r=S.rem.find(x=>x.id===id);if(!r)return;calAdd({id:r.id,title:'🔔 '+r.t,desc:r.note,start:r.at,end:r.at+9e5,al:[0].concat((r.pre||[]).filter(m=>m>0)),rr:r.rep==='daily'?'FREQ=DAILY':r.rep==='weekly'?'FREQ=WEEKLY':r.rep==='monthly'?'FREQ=MONTHLY;BYMONTHDAY='+jp(new Date(r.at)).d:''},r)}
+function calDay(){const k=key(cur),d=cur;const list=tasksOf(k).filter(t=>!t.d).map(t=>{let st,en;if(t.allDay){st=sd(d).getTime();en=addD(sd(d),1).getTime()}else{const h=(t.s||'09:00').split(':');st=new Date(d.getFullYear(),d.getMonth(),d.getDate(),+h[0],+h[1]).getTime();en=t.e?new Date(d.getFullYear(),d.getMonth(),d.getDate(),+t.e.split(':')[0],+t.e.split(':')[1]).getTime():st+18e5}return {id:t.id,title:'📌 '+t.t,desc:t.n,start:st,end:en,allDay:!!t.allDay,al:t.pre||[] ,source:t}}); if(!list.length)return toast('کاری برای افزودن به تقویم نیست'); (async()=>{for(const x of list)await calAdd(x,x.source)})()}
+function calAll(){
+ const out=[],now=Date.now(),td=sd(new Date());
+ S.rem.filter(r=>!r.fired).forEach(r=>{out.push({id:r.id,title:'🔔 '+r.t,desc:r.note,start:r.at,end:r.at+9e5,al:[0].concat((r.pre||[]).filter(m=>m>0)),rr:r.rep==='daily'?'FREQ=DAILY':r.rep==='weekly'?'FREQ=WEEKLY':r.rep==='monthly'?'FREQ=MONTHLY;BYMONTHDAY='+jp(new Date(r.at)).d:'',source:r})});
+ S.alarms.filter(a=>a.on).forEach(a=>{let t=0;for(let i=0;i<8&&!t;i++){const d=addD(td,i);if(a.days.length&&!a.days.includes(wd(d)))continue;const v=new Date(d.getFullYear(),d.getMonth(),d.getDate(),a.h,a.m).getTime();if(v>now)t=v}if(t)out.push({id:a.id,title:'⏰ '+(a.l||'زنگ'),start:t,end:t+3e5,al:[0],rr:!a.days.length?'':a.days.length===7?'FREQ=DAILY':'FREQ=WEEKLY;BYDAY='+a.days.slice().sort().map(i=>BD[i]).join(','),source:a})});
+ Object.keys(S.tasks).filter(k=>k>=key(td)).sort().forEach(k=>S.tasks[k].forEach(t=>{if(t.d)return;const d=fromKey(k);let st,en;if(t.allDay){st=sd(d).getTime();en=addD(sd(d),1).getTime()}else{const h=(t.s||'09:00').split(':');st=new Date(d.getFullYear(),d.getMonth(),d.getDate(),+h[0],+h[1]).getTime();en=t.e?new Date(d.getFullYear(),d.getMonth(),d.getDate(),+t.e.split(':')[0],+t.e.split(':')[1]).getTime():st+18e5}if(st>now)out.push({id:t.id,title:'📌 '+t.t,desc:t.n,start:st,end:en,allDay:!!t.allDay,al:t.pre||[],source:t})}));
+ if(!out.length)return toast('موردی برای افزودن به تقویم نیست');
+ (async()=>{for(const x of out)await calAdd(x,x.source)})();
+}
+
+function nHooks(){try{NP.App.addListener('appStateChange',function(s){if(s.isActive){try{tick()}catch(e){}nRefreshPerm();nSync()}});
+ NP.App.addListener('backButton',function(){if($('#al').classList.contains('on'))return;if($('#ov').classList.contains('on')){closeS();return}if(tab!=='day'){setTab('day');return}NP.App.exitApp()})}catch(e){}}
+
+const $=s=>document.querySelector(s),tf=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]),p2=n=>n<10?'0'+n:''+n;
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MN=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const DN=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'],DS=['ش','ی','د','س','چ','پ','ج'];
+// تعطیلات رسمی ۱۴۰۵ ایران؛ روزهای تعطیل رسمی (به‌جز جمعه‌ها) نیز در تقویم مشخص می‌شوند.
+const HOL={'1405-01-01':'نوروز و عید سعید فطر','1405-01-02':'عید نوروز','1405-01-03':'عید نوروز','1405-01-04':'عید نوروز','1405-01-12':'روز جمهوری اسلامی ایران','1405-01-13':'روز طبیعت (سیزده‌بدر)','1405-01-24':'شهادت امام جعفر صادق (ع)','1405-03-03':'شهادت امام محمد باقر (ع)','1405-03-06':'عید قربان','1405-03-14':'رحلت امام خمینی (ره) و عید غدیر','1405-03-15':'قیام ۱۵ خرداد','1405-04-03':'تاسوعای حسینی','1405-04-04':'عاشورای حسینی','1405-05-13':'اربعین حسینی','1405-05-21':'رحلت پیامبر (ص) و شهادت امام حسن مجتبی (ع)','1405-05-22':'شهادت امام رضا (ع)','1405-05-30':'شهادت امام حسن عسکری (ع)','1405-06-08':'میلاد پیامبر (ص) و میلاد امام جعفر صادق (ع)','1405-08-22':'شهادت حضرت فاطمه زهرا (س)','1405-10-02':'ولادت امام علی (ع) و روز پدر','1405-10-16':'مبعث پیامبر (ص)','1405-11-04':'ولادت امام زمان (عج) و نیمه شعبان','1405-11-22':'پیروزی انقلاب اسلامی','1405-12-09':'شهادت حضرت علی (ع)','1405-12-19':'عید سعید فطر','1405-12-20':'عید سعید فطر','1405-12-29':'روز ملی شدن صنعت نفت ایران'};
+const hol=d=>{const j=jp(d);return j.y===1405?HOL[j.y+'-'+p2(j.m)+'-'+p2(j.d)]||'':''};
+const PF=new Intl.DateTimeFormat('en-u-ca-persian-nu-latn',{year:'numeric',month:'numeric',day:'numeric'});
+const jp=d=>{const p=PF.formatToParts(d),g=t=>+p.find(x=>x.type===t).value;return{y:g('year'),m:g('month'),d:g('day')}};
+const wd=d=>(d.getDay()+1)%7,addD=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n),sd=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const key=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()),fromKey=k=>{const a=k.split('-');return new Date(+a[0],a[1]-1,+a[2])};
+const jl=d=>{const j=jp(d);return tf(j.d)+' '+MN[j.m-1]+' '+tf(j.y)},jfull=d=>DN[wd(d)]+' '+jl(d),hm=(h,m)=>tf(p2(h)+':'+p2(m)),hmOf=ms=>{const d=new Date(ms);return hm(d.getHours(),d.getMinutes())};
+const dur=ms=>{const m=Math.round(ms/6e4);if(m<1)return 'چند ثانیه';if(m<60)return tf(m)+' دقیقه';if(m<1440)return tf(Math.floor(m/60))+' ساعت'+(m%60?' و '+tf(m%60)+' دقیقه':'');return tf(Math.floor(m/1440))+' روز'+(Math.floor(m%1440/60)?' و '+tf(Math.floor(m%1440/60))+' ساعت':'')};
+const COL=['#178BFF','#55D6BE','#FFB020','#FF6680','#A78BFA'];
+const PRE=[[0,'همان لحظه'],[5,'۵ دقیقه قبل'],[10,'۱۰ دقیقه قبل'],[15,'۱۵ دقیقه قبل'],[30,'۳۰ دقیقه قبل'],[60,'۱ ساعت قبل'],[180,'۳ ساعت قبل'],[1440,'۱ روز قبل']];
+const preTxt=a=>(a||[]).slice().sort((x,y)=>x-y).map(m=>m===0?'همان لحظه':m>=1440?'۱ روز':m>=60?tf(m/60)+' ساعت':tf(m)+' دقیقه').join('، ');
+const REP={none:'یک‌بار',daily:'هر روز',weekly:'هر هفته',monthly:'هر ماه (شمسی)'};
+const KM={rem:['🔔','یادآوری'],alarm:['⏰','زنگ'],task:['📌','کار'],pre:['⏳','پیش‌هشدار'],timer:['⏱️','تایمر'],sum:['🌅','برنامهٔ امروز'],test:['🧪','آزمایش هشدار']};
+const DEF={theme:'dark',sound:true,tone:'classic',vol:.8,vib:true,persist:true,ringSec:60,autoRep:5,autoGap:5,snooze:10,taskPre:[0,10],remPre:[10],sum:false,sumAt:'07:30',wake:false,fs:'m',dayAll:false};
+let S;try{S=JSON.parse(localStorage.getItem('planner_v1')||'null')}catch(e){}S=S||{};
+S.tasks=S.tasks||{};S.notes=S.notes||{};S.rem=S.rem||[];S.alarms=S.alarms||[];S.q=S.q||[];S.lastSum=S.lastSum||'';
+S.routines=S.routines||[];S.routineDone=S.routineDone||{};
+if(!S.set){S.set={};if(S.light)S.set.theme='light'}S.set=Object.assign({},DEF,S.set);delete S.light;
+Object.keys(S.tasks).forEach(k=>S.tasks[k].forEach(t=>{if(!t.pre){t.pre=t.b?[0]:[];const dd=fromKey(k),h=t.s.split(':');t.pf=t.pre.filter(()=>new Date(dd.getFullYear(),dd.getMonth(),dd.getDate(),+h[0],+h[1])<Date.now());delete t.b}t.pf=t.pf||[]}));
+S.rem.forEach(r=>{r.pre=r.pre||[];r.pf=r.pf||[];r.rep=r.rep||'none';r.jd=r.jd||jp(new Date(r.at)).d});
+S.alarms.forEach(a=>{if(!a.days)a.days=[0,1,2,3,4,5,6];if(a.snz===undefined)a.snz=true;a.last=a.last||''});
+let cSer=(()=>{const o=Object.assign({},S);delete o.mt;return JSON.stringify(o)})();
+let lastSigT=0;const save=()=>{lastSigT=0;try{const o=Object.assign({},S);delete o.mt;const ser=JSON.stringify(o);if(ser!==cSer){cSer=ser;S.mt=Date.now()}if(CU)S.uid=CU.uid;localStorage.setItem('planner_v1',JSON.stringify(S))}catch(e){}trigSync();if(CU)cloudPush()};
+let cur=sd(new Date()),tab='day',mon=sd(new Date()),uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6),dirty=false,swReg=null;
+const T0={left:0,run:false,end:0,total:0};let T=S.timer&&S.timer.run?S.timer:Object.assign({},T0);
+
+/* ---------- theme ---------- */
+let thT=0;function applyTheme(){const t=S.set.theme,l=t==='light'||(t==='auto'&&matchMedia('(prefers-color-scheme: light)').matches);if(document.body.classList.contains('light')!==l){document.body.classList.add('theming');clearTimeout(thT);thT=setTimeout(()=>document.body.classList.remove('theming'),500)}document.body.classList.toggle('light',l);$('#tc').content=l?'#EEF4FA':'#03070C';document.body.classList.remove('fs-s','fs-l');if(S.set.fs!=='m')document.body.classList.add('fs-'+S.set.fs)}
+try{matchMedia('(prefers-color-scheme: light)').addEventListener('change',applyTheme)}catch(e){}
+
+/* ---------- sound ---------- */
+let AC=null;function ac(){if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume().catch(()=>{});return AC}
+['click','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,()=>ac(),{passive:true}));
+const TONES={classic:()=>[0,.28,.56,.84].map(t=>[880,t,.16,'square']),soft:()=>[523,659,784,1047].map((f,i)=>[f,i*.3,.45,'sine']),urgent:()=>Array.from({length:8},(_,i)=>[i%2?720:980,i*.16,.15,'sawtooth'])};
+function playTone(n,vol){const c=ac();if(!c)return;(TONES[n]||TONES.classic)().forEach(([f,t,d,ty])=>{const o=c.createOscillator(),g=c.createGain();o.type=ty;o.frequency.value=f;o.connect(g);g.connect(c.destination);const s=c.currentTime+t,pk=Math.max(.01,vol*(ty==='sine'?.6:.3));g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(pk,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.start(s);o.stop(s+d+.05)})}
+function testTone(){playTone(S.set.tone,S.set.vol);if(S.set.vib&&navigator.vibrate)navigator.vibrate([300,150,300])}
+
+/* ---------- toast / sheet ---------- */
+function toast(m,ms=3200){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),ms)}
+function addSheetClose(){const sh=$('#sh');if(!sh||sh.querySelector('.sheet-head'))return;const h=sh.querySelector('h3');if(!h)return;const head=document.createElement('div');head.className='sheet-head';h.parentNode.insertBefore(head,h);head.appendChild(h);const b=document.createElement('button');b.className='sheet-close';b.type='button';b.setAttribute('aria-label','بستن');b.textContent='×';b.onclick=closeS;head.appendChild(b)}
+let closeT=0;function sheet(h){clearTimeout(closeT);$('#ov').classList.remove('out');$('#sh').innerHTML=h;$('#ov').classList.add('on');setOpen=null;addSheetClose()}function closeS(){const o=$('#ov');setOpen=null;if(!o.classList.contains('on')||o.classList.contains('out'))return;o.classList.add('out');clearTimeout(closeT);closeT=setTimeout(()=>o.classList.remove('on','out'),190)}
+$('#ov').onclick=e=>{if(e.target.id==='ov')closeS()};let setOpen=null;
+let shTouchY=0, shTouchStartScroll=0;
+$('#sh').addEventListener('touchstart',e=>{if(!$('#ov').classList.contains('on'))return;shTouchY=e.touches[0].clientY;shTouchStartScroll=$('#sh').scrollTop},{passive:true});
+$('#sh').addEventListener('touchend',e=>{if(!$('#ov').classList.contains('on'))return;const dy=e.changedTouches[0].clientY-shTouchY;if(dy>100&&shTouchStartScroll<=2&&!(e.target.closest&&e.target.closest('input,textarea,select')))closeS()},{passive:true});
+const FS={};
+function chips(id,opts,sel,multi){FS[id]={opts,sel:[].concat(sel),multi};return `<div class="chips" id="${id}">${chipsIn(id)}</div>`}
+function chipsIn(id){const f=FS[id];return f.opts.map(([v,l])=>`<button type="button" class="ch ${f.sel.includes(v)?'on':''}" data-v="${v}">${l}</button>`).join('')}
+document.addEventListener('click',e=>{const b=e.target.closest('.ch');if(!b||!b.parentElement.id)return;const id=b.parentElement.id,f=FS[id];if(!f)return;const o=f.opts.find(x=>String(x[0])===b.dataset.v);if(!o)return;const v=o[0];f.sel=f.multi?(f.sel.includes(v)?f.sel.filter(x=>x!==v):[...f.sel,v]):[v];b.parentElement.innerHTML=chipsIn(id);
+ if(id.startsWith('s_')){const k=id.slice(2);S.set[k]=f.multi?f.sel.slice().sort((a,c)=>a-c):f.sel[0];save();applyTheme();if(id==='s_tone')playTone(S.set.tone,S.set.vol)}});
+
+/* ---------- alert queue / engine ---------- */
+function push(o){const e=Object.assign({id:uid(),n:0,auto:0,stopped:false},o);S.q.push(e);dirty=true;return e}
+function nextAt(r,now){const o=new Date(r.at),hh=o.getHours(),mi=o.getMinutes();let d=sd(o),t,g=0;do{if(r.rep==='daily')d=addD(d,1);else if(r.rep==='weekly')d=addD(d,7);else{do{d=addD(d,1)}while(!(jp(d).d===r.jd||(jp(addD(d,1)).d===1&&jp(d).d<r.jd)))}t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),hh,mi).getTime();g++}while(t<=now&&g<800);return t}
+function alarmOcc(a,now,td){for(const d of [td,addD(td,-1)]){if(a.days.length&&!a.days.includes(wd(d)))continue;const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),a.h,a.m).getTime();if(t<=now&&now-t<432e5)return{t,kk:key(d)+'T'+a.h+':'+a.m}}return null}
+function sched(now){const td=sd(new Date(now));
+ S.rem.forEach(r=>{if(r.fired)return;
+  r.pre.forEach(m=>{if(m>0&&!r.pf.includes(m)&&now>=r.at-m*6e4){r.pf.push(m);dirty=true;if(now<r.at)push({kind:'pre',title:r.t,note:r.note,at:r.at,due:now})}});
+  if(now>=r.at){push({kind:'rem',title:r.t,note:r.note,due:r.at});if(r.rep!=='none'){r.at=nextAt(r,now);r.pf=r.pre.filter(m=>r.at-m*6e4<=now)}else r.fired=true}});
+ S.alarms.forEach(a=>{if(!a.on)return;const o=alarmOcc(a,now,td);if(o&&a.last!==o.kk){a.last=o.kk;dirty=true;push({kind:'alarm',title:a.l||'زنگ',at:o.t,due:o.t,snz:a.snz});if(!a.days.length)a.on=false}});
+ [addD(td,-1),td,addD(td,1)].forEach(d=>{const k=key(d);(S.tasks[k]||[]).forEach(t=>{if(t.d||!t.pre.length)return;const h=t.s.split(':'),st=new Date(d.getFullYear(),d.getMonth(),d.getDate(),+h[0],+h[1]).getTime();
+  t.pre.forEach(m=>{if(t.pf.includes(m))return;const tt=st-m*6e4;if(now<tt)return;t.pf.push(m);dirty=true;
+   if(m===0){if(now-st<216e5)push({kind:'task',title:t.t,note:t.n,at:st,due:st,ref:{k,id:t.id}})}else if(now<st)push({kind:'pre',title:t.t,note:t.n,at:st,due:now})})})});
+ if(S.set.sum&&S.lastSum!==key(td)){const h=S.set.sumAt.split(':'),t=new Date(td.getFullYear(),td.getMonth(),td.getDate(),+h[0],+h[1]).getTime();
+  if(now>=t){S.lastSum=key(td);dirty=true;if(now-t<216e5){const ts=tasksOf(key(td)).filter(x=>!x.d),rs=S.rem.filter(r=>!r.fired&&key(new Date(r.at))===key(td));
+   push({kind:'sum',title:'برنامهٔ امروز',due:t,note:ts.length||rs.length?(ts.length?tf(ts.length)+' کار: '+ts.slice(0,4).map(x=>x.t).join('، ')+(ts.length>4?'…':''):'')+(rs.length?(ts.length?' | ':'')+tf(rs.length)+' یادآوری':''):'برای امروز چیزی ثبت نشده. برنامه‌ات را بچین!'})}}}
+ if(T.run&&now>=T.end){push({kind:'timer',title:'تایمر تمام شد',due:T.end});T=Object.assign({},T0);S.timer=null;dirty=true}}
+function markAlarm(a){const o=alarmOcc(a,Date.now(),sd(new Date()));a.last=o?o.kk:''}
+
+/* ---------- ring / overlay ---------- */
+let RS={id:'',start:0,last:0,mute:false,nlast:0},alSig='';
+function sysNotify(E){try{const o={body:(E.note||'')+(E.note?' · ':'')+hmOf(E.at||E.due),tag:E.id,renotify:true,requireInteraction:true,vibrate:[300,150,300,150,600],icon:'icon-192.png',badge:'icon-192.png',lang:'fa',dir:'rtl'};if(Notification.permission!=='granted')return;const ttl=KM[E.kind][0]+' '+E.title;if(swReg&&swReg.showNotification)swReg.showNotification(ttl,o);else new Notification(ttl,o)}catch(e){}}
+function ringList(now){return S.q.filter(e=>e.due<=now&&!e.stopped).sort((a,b)=>a.due-b.due)}
+function ringTick(now){const R=ringList(now);if(!R.length){alHide();RS.id='';return}
+ const E=R[0],sig=E.id+':'+E.n;if(RS.id!==sig)RS={id:sig,start:now,last:0,mute:false,nlast:0};
+ alShow(E,R.length-1,now);
+ if(now-RS.start>=S.set.ringSec*1e3){if(E.auto<S.set.autoRep){E.auto++;E.n++;E.due=now+S.set.autoGap*6e4}else E.stopped=true;dirty=true;RS.id='';ringTick(now);return}
+ if(!RS.mute&&now-RS.last>=(S.set.persist?3000:1e12)){RS.last=now;if(S.set.sound)playTone(S.set.tone,S.set.vol);if(S.set.vib&&navigator.vibrate)navigator.vibrate([400,200,400,200,800])}
+ if(document.hidden&&now-RS.nlast>=15000){RS.nlast=now;sysNotify(E)}}
+function alShow(E,more,now){const al=$('#al');if(!al.classList.contains('on')){al.classList.add('on');document.body.style.overflow='hidden'}
+ const sig=E.id+':'+E.n,late=now-E.due>90000;
+ if(alSig!==sig){alSig=sig;const m=KM[E.kind];$('#al_i').textContent=m[0];$('#al_k').textContent=m[1];$('#al_t').textContent=E.title;$('#al_b').textContent=E.note||'';$('#al_tm').textContent=hmOf(E.at||E.due);
+  const pb={task:[['done','✓ انجام شد'],['ok','فهمیدم']],rem:[['ok','✓ انجام شد']],alarm:[['ok','خاموش کن']]}[E.kind]||[['ok','باشه']];
+  $('#al_p').innerHTML=pb.map((b,i)=>`<button class="btn ${i?'g':''}" onclick="alAct('${b[0]}')">${b[1]}</button>`).join('');
+  const can=!['sum','test','timer'].includes(E.kind)&&E.snz!==false;
+  $('#al_s').innerHTML=can?'<div style="width:100%;font-size:12px;color:var(--m)">بعداً دوباره یادم بنداز:</div>'+[5,10,15,30,60].map(m=>`<button class="ch ${m===S.set.snooze?'on':''}" onclick="alAct('snz',${m})">${tf(m)} دقیقه</button>`).join(''):''}
+ $('#al_r').textContent=E.kind==='pre'?'⏳ '+dur(E.at-now)+' تا شروع':late?'⚠️ از دست رفته · '+dur(now-E.due)+' پیش':'';
+ $('#al_more').textContent=more>0?'+ '+tf(more)+' مورد دیگر هم منتظر است':'';$('#al_mu').style.display=RS.mute?'none':'inline-block';
+ document.title=(Math.floor(now/1000)%2?'🔔 ':'⏰ ')+E.title}
+function alHide(){const al=$('#al');if(al.classList.contains('on')){al.classList.remove('on');document.body.style.overflow='';alSig=''}document.title='DayFlow'}
+function alAct(a,v){if(a==='mute'){RS.mute=true;$('#al_mu').style.display='none';return}
+ const now=Date.now(),E=ringList(now)[0];if(!E)return;
+ if(a==='snz'){E.due=now+v*6e4;E.auto=0;E.n++;toast('⏰ یادآوری بعدی ساعت '+hmOf(E.due))}
+ else{if(a==='done'&&E.kind==='task'&&E.ref){const t=(S.tasks[E.ref.k]||[]).find(x=>x.id===E.ref.id);if(t)t.d=true}S.q=S.q.filter(x=>x!==E)}
+ save();RS.id='';ringTick(now);bnRender();if(!$('#ov').classList.contains('on'))render(1)}
+let bnSig='';
+function hasSched(){return S.alarms.some(a=>a.on)||S.rem.some(r=>!r.fired)||Object.keys(S.tasks).some(k=>S.tasks[k].some(t=>t.pre.length))}
+function bnRender(){const mi=S.q.filter(e=>e.stopped).length,np=(NATIVE?(nNativeStatus?(!nNativeStatus.notificationsEnabled||!nNativeStatus.alertChannelEnabled||!nNativeStatus.alarmChannelEnabled):nPerm!=='granted'):('Notification' in window&&Notification.permission==='default'))&&(S.rem.length||S.alarms.length||Object.keys(S.tasks).length);
+ if(Date.now()-lastSigT>3000){lastSigT=Date.now()}
+ const sig=mi+'|'+np;
+ const b=$('#bd');b.style.display=mi?'flex':'none';b.textContent=tf(mi);if(sig===bnSig)return;bnSig=sig;
+ $('#mb').innerHTML=(mi?`<div class="bn warn" onclick="openMissed()">⚠️ ${tf(mi)} مورد از دست رفته — برای دیدن و رسیدگی لمس کن</div>`:'')+''+(np?`<div class="bn" onclick="fixNotifications()">🔔 وضعیت اعلان‌ها را بررسی کن؛ برای هشدار بیرون از برنامه فعالش کن.</div>`:'')}
+function openMissed(){const L=S.q.filter(e=>e.stopped);if(!L.length)return closeS();
+ sheet(`<h3>⚠️ موارد از دست رفته</h3>`+L.map(e=>`<div class="row"><div class="i"><b>${esc(e.title)}</b><small>${KM[e.kind][1]} · ${dur(Date.now()-e.due)} پیش</small></div><button class="btn g" style="padding:8px 11px" onclick="mAct('${e.id}','snz')">${tf(S.set.snooze)} دقیقه دیگر</button><button class="btn" style="padding:8px 14px" onclick="mAct('${e.id}','ok')">دیدم</button></div>`).join('')+`<button class="btn g" style="width:100%;margin-top:12px" onclick="S.q=S.q.filter(e=>!e.stopped);save();bnRender();closeS()">همه را دیدم</button>`)}
+function mAct(id,a){const e=S.q.find(x=>x.id===id);if(!e)return;if(a==='snz'){e.stopped=false;e.auto=0;e.n++;e.due=Date.now()+S.set.snooze*6e4}else S.q=S.q.filter(x=>x!==e);save();bnRender();openMissed()}
+function askNotif(){if(NATIVE){nAsk();return}try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission().then(()=>{bnSig='';bnRender();if(setOpen)openSet(1)})}catch(e){}}
+
+/* ---------- tasks / day ---------- */
+function tasksOf(k){return(S.tasks[k]||[]).slice().sort((a,b)=>{if(!!a.allDay!==!!b.allDay)return a.allDay?1:-1;return (a.s||'99:99').localeCompare(b.s||'99:99')})}
+function routineForDay(k){return routineItems().filter(r=>r.s).map(r=>Object.assign({},r,{_done:routineDone(k,r.id)})).sort((a,b)=>a.s.localeCompare(b.s))}
+function routineEventHTML(r,k){return `<div class="routine-event ${r._done?'done':''}" data-id="${r.id}" style="--rc:${r.c||'#55D6BE'}" onclick="event.stopPropagation();routineToggle('${r.id}','${k}')"><span class="recheck">${r._done?'✓':''}</span><span class="retitle">🔁 ${esc(r.t)}</span><small>${tf(r.s)}</small><button class="reedit" onclick="event.stopPropagation();addRoutine('${r.id}')" aria-label="ویرایش">✎</button></div>`}
+function taskHTML(t,k,full){return `<div class="tk ${t.d?'d':''}${t.id===FLASH?' is-new':''}" data-id="${t.id}" style="--c:${t.c}"><button class="ck" onclick="event.stopPropagation();tog('${k}','${t.id}')">${t.d?'✓':''}</button><div class="tt" onclick="event.stopPropagation();editT('${k}','${t.id}')"><span class="tn">${esc(t.t)}</span><small>${t.allDay?'📌 بدون ساعت':tf(t.s)}${!t.allDay&&t.e?' تا '+tf(t.e):''}${!t.allDay&&t.pre&&t.pre.length?' · 🔔':''}${t.n?' · '+esc(t.n):''}</small></div>${full?`<button class="x" onclick="event.stopPropagation();delT('${k}','${t.id}')">✕</button>`:''}</div>`}
+let gapOpen=new Set();
+function nextUp(k){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),c=[];
+ (S.tasks[k]||[]).forEach(t=>{if(!t.d&&!t.allDay&&t.s){const a=t.s.split(':');c.push({t:t.t,m:+a[0]*60+ +a[1],r:0})}});
+ routineForDay(k).forEach(r=>{if(!r._done){const a=r.s.split(':');c.push({t:r.t,m:+a[0]*60+ +a[1],r:1})}});
+ const u=c.filter(x=>x.m>=nm).sort((a,b)=>a.m-b.m)[0];return u?Object.assign(u,{nm}):null}
+function ringHTML(pc){return `<div class="ring"><svg viewBox="0 0 36 36" width="68" height="68"><circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--p3)" stroke-width="3.4"/><circle class="rfg" cx="18" cy="18" r="15.915" fill="none" stroke="${pc===100?'var(--ok)':'var(--b)'}" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="${pc} 100"/></svg><b>${tf(pc)}٪</b></div>`}
+function openGap(a,b){for(let i=a;i<=b;i++)gapOpen.add(i);render(1)}
+function togAll(){S.set.dayAll=!S.set.dayAll;gapOpen.clear();save();render(1)}
+function dayMenu(){sheet(`<h3>عملیات این روز</h3><button class="btn g" style="width:100%;margin-bottom:8px" onclick="closeS();calDay()">📅 کارهای این روز مستقیم در تقویم گوشی</button><button class="btn g" style="width:100%;margin-bottom:8px" onclick="closeS();moveUn()">⏭️ انجام‌نشده‌ها را به فردا ببر</button><button class="btn g" style="width:100%" onclick="closeS();setTimeout(openCalendarDirect,220)">📅 افزودن مستقیم برنامه‌ها به تقویم</button>`)}
+function vDay(){const k=key(cur),ts=tasksOf(k),timed=ts.filter(t=>!t.allDay),free=ts.filter(t=>t.allDay),rsAll=routineForDay(k),dn=ts.filter(t=>t.d).length,pc=ts.length?Math.round(dn/ts.length*100):0,isT=k===key(new Date()),nh=new Date().getHours(),hd=hol(cur);
+ let note;if(isT){const u=nextUp(k);note=u?`⏭ بعدی: <b>${esc(u.t)}</b>${u.r?' 🔁':''}<br>ساعت ${hm(Math.floor(u.m/60),u.m%60)} · ${u.m-u.nm>0?dur((u.m-u.nm)*6e4)+' دیگر':'الان'}`:ts.length&&dn===ts.length?'🎉 همهٔ کارهای امروز انجام شد':ts.length?'برای بعد از این ساعت کاری نمانده':'هنوز برنامه‌ای برای امروز نداری'}
+ else note=ts.length?tf(ts.length)+' کار برای این روز':'برای این روز برنامه‌ای نداری';
+ let h=`<div class="nav"><button class="ib" onclick="go(1)">›</button><h2>${jfull(cur)}${hd?`<div class="holidayTag" style="margin-top:3px">🎌 ${esc(hd)}</div>`:''}</h2><button class="ib" onclick="go(-1)">‹</button></div>
+ <div class="card hero-c"><div class="hero">${ringHTML(pc)}<div class="hero-t"><b>${tf(dn)} از ${tf(ts.length)} کار انجام شد</b><div class="hero-n">${note}</div></div></div>
+ <div class="hero-act"><button class="btn" onclick="addFreeT()">＋ کار جدید</button>${isT?'':`<button class="btn g" onclick="cur=sd(new Date());gapOpen.clear();render()">امروز</button>`}<button class="btn g more" onclick="dayMenu()" aria-label="گزینه‌های بیشتر">⋯</button></div></div>
+ <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:14px">خط زمانی</b><button class="chip" style="font-size:10.5px;padding:5px 10px" onclick="togAll()">${S.set.dayAll?'فقط ساعت‌های دارای برنامه':'نمایش همهٔ ساعت‌ها'}</button></div>`;
+ if(free.length) h+=`<div class="free-tasks"><div class="section-title"><b>📌 تسک‌های امروز</b><span>بدون ساعت</span></div>${free.map(t=>taskHTML(t,k,1)).join('')}</div>`;
+ const vis=i=>S.set.dayAll||timed.some(t=>+t.s.slice(0,2)===i)||rsAll.some(r=>+r.s.slice(0,2)===i)||(isT&&i===nh)||gapOpen.has(i);
+ for(let i=0;i<24;i++){
+  if(!vis(i)){let b=i;while(b+1<24&&!vis(b+1))b++;h+=`<div class="gap" onclick="openGap(${i},${b})"><span class="gd">⋯</span><span>${tf(b-i+1)} ساعت بدون برنامه · ${hm(i,0)} تا ${hm(b,59)}</span></div>`;i=b;continue}
+  const hs=timed.filter(t=>+t.s.slice(0,2)===i),rs=rsAll.filter(r=>+r.s.slice(0,2)===i),now=isT&&i===nh;
+  h+=`<div class="hr ${now?'now':''}" ${now?'id="nowrow"':''} onclick="addT(${i})"><div class="hl">${hm(i,0)}${now?`<span class="nowtag">الان</span>`:''}</div><div class="hc">${rs.map(r=>routineEventHTML(r,k)).join('')}${hs.map(t=>taskHTML(t,k,1)).join('')}</div></div>`}
+ return h+`</div><div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">📝 یادداشت این روز</b><span id="n_st" class="mt">${noteSt(k)}</span></div><textarea id="n_t" style="margin-top:8px" placeholder="هر چیزی که می‌خواهی ثبت کنی…" oninput="noteIn('${k}',this)">${esc(noteVal(k))}</textarea><div class="two" style="margin-top:10px"><button class="btn" id="n_b" style="flex:2" onclick="noteSave('${k}')" ${noteDirty(k)?'':'disabled'}>ثبت یادداشت</button>${S.notes[k]?`<button class="btn g" onclick="noteDel('${k}')">حذف</button>`:''}</div></div>`}
+const D={};
+function noteVal(k){return k in D?D[k]:(S.notes[k]||'')}
+function noteDirty(k){return k in D&&D[k].trim()!==(S.notes[k]||'').trim()}
+function noteSt(k){return noteDirty(k)?'<b style="color:var(--bad)">● هنوز ثبت نشده</b>':S.notes[k]?'<b style="color:var(--ok)">✓ ثبت شده</b>':''}
+function noteIn(k,el){D[k]=el.value;$('#n_st').innerHTML=noteSt(k);$('#n_b').disabled=!noteDirty(k)}
+function noteSave(k){if(!(k in D))return;const v=D[k].trim();if(v){S.notes[k]=v;toast('✓ یادداشت ثبت شد')}else{delete S.notes[k];toast('یادداشت خالی بود و حذف شد')}delete D[k];save();render(1)}
+function noteDel(k){if(confirm('این یادداشت حذف شود؟')){delete S.notes[k];delete D[k];save();render(1);toast('یادداشت حذف شد')}}
+let navDx=0,FLASH='';function go(n){cur=addD(cur,n);gapOpen.clear();navDx=n>0?-18:18;render()}function wk(n){cur=addD(cur,n);navDx=n>0?-18:18;render()}
+function popEl(id){document.querySelectorAll('[data-id="'+id+'"] .ck,[data-id="'+id+'"] .rcheck,[data-id="'+id+'"] .recheck').forEach(e=>e.classList.add('pop'))}
+function buzz(){try{if(S.set.vib&&navigator.vibrate)navigator.vibrate(12)}catch(e){}}
+function confetti(){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;const c=document.createElement('div');c.className='cf';const cl=['#178BFF','#55D6BE','#FFB020','#FF6680','#A78BFA'];for(let i=0;i<40;i++){const p=document.createElement('i');p.style.cssText=`left:${50+(Math.random()-.5)*16}%;--x:${((Math.random()-.5)*360).toFixed(0)}px;--y:${(-(140+Math.random()*240)).toFixed(0)}px;--r:${(Math.random()*720-360).toFixed(0)}deg;background:${cl[i%5]};animation-delay:${(Math.random()*.12).toFixed(2)}s`;c.appendChild(p)}document.body.appendChild(c);setTimeout(()=>c.remove(),2000)}
+function tog(k,id){const t=S.tasks[k].find(x=>x.id===id);t.d=!t.d;save();render(1);buzz();if(t.d){popEl(id);if(S.tasks[k].every(x=>x.d)){confetti();toast('🎉 همهٔ کارهای این روز انجام شد!')}}}
+function delT(k,id){S.tasks[k]=S.tasks[k].filter(x=>x.id!==id);if(!S.tasks[k].length)delete S.tasks[k];save();render(1)}
+function moveUn(){const k=key(cur),nk=key(addD(cur,1)),u=(S.tasks[k]||[]).filter(t=>!t.d);if(!u.length)return toast('همه‌چیز انجام شده 👏');S.tasks[k]=S.tasks[k].filter(t=>t.d);if(!S.tasks[k].length)delete S.tasks[k];S.tasks[nk]=(S.tasks[nk]||[]).concat(u.map(t=>Object.assign({},t,{id:uid(),pf:[]})));save();render(1);toast(tf(u.length)+' کار به فردا منتقل شد')}
+let selC=COL[0];
+function addT(h,k0,id){const k=k0||key(cur),t=id?S.tasks[k].find(x=>x.id===id):null;h=h==null?new Date().getHours():h;selC=t?t.c:COL[0];
+ sheet(`<h3>${t?'ویرایش کار':'کار جدید'} — ${jl(fromKey(k))}</h3><label>عنوان</label><input type="text" id="f_t" value="${esc(t?t.t:'')}" placeholder="مثلاً جلسه، ورزش، مطالعه">
+ <label>یادداشت (اختیاری)</label><input type="text" id="f_n" value="${esc(t?t.n:'')}" placeholder="جزئیات، مکان، لینک…">
+ <label class="free-toggle"><input type="checkbox" id="f_all" ${t&&t.allDay?'checked':''} onchange="document.getElementById('timeFields').style.display=this.checked?'none':'flex'"> <span>📌 فقط برای امروز، بدون ساعت</span></label><div class="two" id="timeFields" style="${t&&t.allDay?'display:none;':''}"><div><label>شروع</label><input type="time" id="f_s" value="${t&&!t.allDay?t.s:p2(h)+':00'}"></div><div><label>پایان (اختیاری)</label><input type="time" id="f_e" value="${t&&!t.allDay?t.e||'':''}"></div></div>
+ <label>رنگ</label><div class="cols">${COL.map(c=>`<i style="--c:${c}" class="${c===selC?'on':''}" onclick="selC='${c}';document.querySelectorAll('.cols i').forEach(i=>i.classList.toggle('on',i.style.getPropertyValue('--c')==='${c}'))"></i>`).join('')}</div>
+ <label>هشدار (چند مورد می‌توانی انتخاب کنی؛ هیچ‌کدام = بدون هشدار)</label>${chips('f_pre',PRE,t?t.pre:S.set.taskPre,true)}
+ <div class="two" style="margin-top:14px"><button class="btn" style="flex:2" onclick="saveT('${k}','${id||''}')">ذخیره</button><button class="btn g" onclick="closeS()">انصراف</button></div>`)}
+function editT(k,id){addT(null,k,id)}
+function addFreeT(k0,id){const k=k0||key(cur),t=id?S.tasks[k].find(x=>x.id===id):null;selC=t?t.c:COL[0];addT(null,k,id);setTimeout(()=>{const a=$('#f_all');if(a&&!a.checked){a.checked=true;a.dispatchEvent(new Event('change'))}},0)}
+function saveT(k,id){const t=$('#f_t').value.trim();if(!t)return toast('عنوان را بنویس');const allDay=$('#f_all').checked;const s=allDay?'':($('#f_s').value||'09:00'),e=allDay?'':$('#f_e').value;if(!allDay&&e&&e<=s)return toast('پایان باید بعد از شروع باشد');
+ const pre=allDay?[]:FS.f_pre.sel.slice().sort((a,b)=>a-b),d=fromKey(k),h=(s||'00:00').split(':'),st=new Date(d.getFullYear(),d.getMonth(),d.getDate(),+h[0],+h[1]).getTime();
+ const o={t,n:$('#f_n').value.trim(),s,e,allDay,c:selC,pre,pf:pre.filter(m=>st-m*6e4<=Date.now())};
+ S.tasks[k]=S.tasks[k]||[];if(id)Object.assign(S.tasks[k].find(x=>x.id===id),o);else{FLASH=uid();S.tasks[k].push(Object.assign({id:FLASH,d:false},o))}save();closeS();render(1);if(pre.length)askNotif()}
+
+/* ---------- week / month / notes ---------- */
+function vWeek(){const st=addD(cur,-wd(cur)),en=addD(st,6),tdk=key(new Date());
+ const D7=[0,1,2,3,4,5,6].map(i=>{const d=addD(st,i),k=key(d),ts=tasksOf(k);return{i,d,k,ts,rs:routineForDay(k),dn:ts.filter(t=>t.d).length,hd:hol(d)}});
+ const tt=D7.reduce((a,x)=>a+x.ts.length,0),tdn=D7.reduce((a,x)=>a+x.dn,0),pc=tt?Math.round(tdn/tt*100):0,mx=Math.max(1,...D7.map(x=>x.ts.length));
+ let h=`<div class="nav"><button class="ib" onclick="wk(7)">›</button><h2>${jl(st)} تا ${jl(en)}</h2><button class="ib" onclick="wk(-7)">‹</button></div>
+ <div class="card"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800"><span>${tf(tt)} کار در این هفته</span><span style="color:var(--b2)">${tf(tdn)} انجام شد · ${tf(pc)}٪</span></div><div class="bar"><i style="width:${pc}%"></i></div>
+ <div class="wstrip">${D7.map(x=>`<button class="wcol ${x.k===tdk?'today':''} ${x.hd||x.i===6?'hol':''}" onclick="cur=fromKey('${x.k}');setTab('day')"><div class="wbar"><i style="height:${x.ts.length?Math.round(22+x.ts.length/mx*78):0}%"><u style="height:${x.ts.length?Math.round(x.dn/x.ts.length*100):0}%"></u></i></div><span>${DS[x.i]}</span><b>${tf(jp(x.d).d)}</b></button>`).join('')}</div></div><div class="wk">`;
+ D7.forEach(x=>{const k=x.k,d=x.d;
+  if(!(x.ts.length||x.rs.length||x.hd||S.notes[k])){h+=`<div class="wd-empty ${k===tdk?'today':''}" onclick="cur=fromKey('${k}');setTab('day')"><span>${DN[x.i]} ${tf(jp(d).d)} ${MN[jp(d).m-1]}</span><small>آزاد · لمس کن تا برنامه بچینی</small></div>`;return}
+  h+=`<div class="card wd ${k===tdk?'today':''} ${x.hd?'holiday':''}" onclick="cur=fromKey('${k}');setTab('day')"><h3><span>${DN[x.i]} ${tf(jp(d).d)} ${MN[jp(d).m-1]}${x.hd?` <small class="holidayTag">· تعطیل</small>`:''}</span><span class="mt">${x.ts.length?tf(x.dn)+'/'+tf(x.ts.length)+' کار':''}${x.rs.length?' · 🔁 '+tf(x.rs.length):''}${S.notes[k]?' · 📝':''}</span></h3>${x.hd?`<div class="mt" style="color:var(--bad);margin-bottom:6px">تعطیل رسمی: ${esc(x.hd)}</div>`:''}${x.rs.map(r=>routineEventHTML(r,k)).join('')}${x.ts.map(t=>taskHTML(t,k,0)).join('')}</div>`});
+ return h+'</div>'}
+function mshift(n){navDx=n>0?-18:18;let d=addD(mon,-(jp(mon).d-1));d=n>0?addD(d,32):addD(d,-1);mon=addD(d,-(jp(d).d-1));render()}
+function selDay(k){cur=fromKey(k);render(1)}
+function vMonth(){const j=jp(mon),f=addD(mon,-(j.d-1));let n=0,x=f;while(jp(x).m===j.m){n++;x=addD(x,1)}
+ let tt=0,tdn=0,hc=0,cells='';
+ for(let i=0;i<n;i++){const d=addD(f,i),k=key(d),L=S.tasks[k]||[],has=L.length,hasR=routineForDay(k).length,r=S.rem.some(r=>!r.fired&&key(new Date(r.at))===k),hd=hol(d);tt+=has;tdn+=L.filter(t=>t.d).length;if(hd)hc++;
+  cells+=`<button class="mc ${k===key(new Date())?'today':''} ${k===key(cur)?'sel':''} ${wd(d)===6?'fri':''} ${hd?'holiday':''}" style="--h:${Math.min(has,5)/5}" title="${hd?esc('تعطیل رسمی: '+hd):''}" onclick="selDay('${k}')">${tf(i+1)}<div class="dots">${has?'<i></i>':''}${hasR?'<i class="routine-dot"></i>':''}${S.notes[k]?'<i class="n"></i>':''}${r?'<i class="r"></i>':''}${hd?'<i class="h"></i>':''}</div></button>`}
+ let h=`<div class="nav"><button class="ib" onclick="mshift(1)">›</button><h2>${MN[j.m-1]} ${tf(j.y)}</h2><button class="ib" onclick="mshift(-1)">‹</button></div>
+ <div class="mstats"><div><b>${tf(tt)}</b><span>کار</span></div><div><b>${tf(tdn)}</b><span>انجام شد</span></div><div><b>${tf(hc)}</b><span>تعطیل رسمی</span></div></div>
+ <div class="card"><div class="mg">${DS.map(s=>`<div class="h">${s}</div>`).join('')}`;
+ for(let i=0;i<wd(f);i++)h+='<div class="mc off"></div>';
+ h+=cells+`</div><div class="mt" style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap"><span><b style="color:var(--ok)">●</b> تسک</span><span><b style="color:#55D6BE">●</b> روتین</span><span><b style="color:var(--b2)">●</b> یادداشت</span><span><b style="color:#FFB020">●</b> یادآوری</span><span><b style="color:var(--bad)">●</b> تعطیل</span></div></div>`;
+ const c=jp(cur);
+ if(c.m===j.m&&c.y===j.y){const k=key(cur),ts=tasksOf(k),rs=routineForDay(k),rm=S.rem.filter(r=>!r.fired&&key(new Date(r.at))===k),hd=hol(cur);
+  h+=`<div class="card pv"><div class="rday"><b>${jfull(cur)}</b><span>${hd?'🎌 '+esc(hd):''}</span></div>${ts.map(t=>taskHTML(t,k,0)).join('')}${rs.length?`<div class="mt" style="margin:6px 0">🔁 ${tf(rs.length)} روتین ثابت</div>`:''}${rm.map(r=>`<div class="mt" style="margin:4px 0">🔔 ${esc(r.t)} · ساعت ${hmOf(r.at)}</div>`).join('')}${S.notes[k]?`<div class="pvn">📝 ${esc(S.notes[k].slice(0,100))}${S.notes[k].length>100?'…':''}</div>`:''}${!ts.length&&!rs.length&&!rm.length&&!S.notes[k]?'<div class="mt" style="text-align:center;padding:10px 0">برای این روز برنامه‌ای نیست</div>':''}<button class="btn" style="width:100%;margin-top:10px" onclick="setTab('day')">باز کردن این روز ←</button></div>`}
+ else h+=`<div class="hint" style="text-align:center;margin:0 0 10px">یک روز را انتخاب کن تا خلاصه‌اش را اینجا ببینی</div>`;
+ return h+`<button class="btn g" style="width:100%" onclick="mon=sd(new Date());cur=sd(new Date());render()">ماه جاری</button>`}
+let q='';
+function hlNote(t){const e=esc(t);if(!q)return e;const qe=esc(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');try{return e.replace(new RegExp(qe,'g'),m=>`<mark>${m}</mark>`)}catch(x){return e}}
+function relDay(k){const dd=Math.round((sd(new Date())-fromKey(k))/864e5);return dd===0?'امروز':dd===1?'دیروز':dd>1&&dd<8?tf(dd)+' روز پیش':dd<0?(dd===-1?'فردا':tf(-dd)+' روز دیگر'):''}
+function notesRes(){const ks=Object.keys(S.notes).sort().reverse().filter(k=>!q||S.notes[k].includes(q));
+ if(!ks.length)return `<div class="empty">${q?'یادداشتی با این عبارت پیدا نشد.':'هنوز یادداشتی نداری. از صفحهٔ «امروز» برای هر روز یادداشت بنویس.'}</div>`;
+ let h='',last='';ks.forEach(k=>{const j=jp(fromKey(k)),mk=j.y+'-'+j.m;if(mk!==last){last=mk;h+=`<div class="nmon">${MN[j.m-1]} ${tf(j.y)}</div>`}
+  const w=S.notes[k].trim().split(/\s+/).length,rl=relDay(k);
+  h+=`<div class="card ncard" onclick="cur=fromKey('${k}');setTab('day')"><div class="nh"><b>${DN[wd(fromKey(k))]} ${tf(j.d)} ${MN[j.m-1]}</b>${rl?`<span class="nrel">${rl}</span>`:''}</div><div class="nb">${hlNote(S.notes[k])}</div><div class="nf">${tf(w)} کلمه</div></div>`});return h}
+function noteToday(){cur=sd(new Date());setTab('day');setTimeout(()=>{const t=$('#n_t');if(t){t.scrollIntoView({block:'center',behavior:'smooth'});t.focus()}},450)}
+function vNotes(){const c=Object.keys(S.notes).length;return `<div class="nhead"><div><b>${tf(c)} یادداشت</b><span class="mt">برای هر روز جداگانه</span></div><button class="btn" onclick="noteToday()">✎ یادداشت امروز</button></div><input type="search" id="n_q" placeholder="جست‌وجو در یادداشت‌ها" value="${esc(q)}" oninput="q=this.value;$('#n_res').innerHTML=notesRes()"><div style="height:12px"></div><div id="n_res">${notesRes()}</div>`}
+
+
+/* ---------- daily routines ---------- */
+let rSort='time';
+function routineItems(){return S.routines.slice().filter(r=>r.on!==false).sort((a,b)=>{
+  if(rSort==='title') return a.t.localeCompare(b.t,'fa');
+  return (a.s||'99:99').localeCompare(b.s||'99:99');
+})}
+function routineDone(k,id){return !!(S.routineDone[k]&&S.routineDone[k][id])}
+function routineToggle(id,k0){
+  const k=k0||key(cur);S.routineDone[k]=S.routineDone[k]||{};
+  const nowDone=!S.routineDone[k][id];S.routineDone[k][id]=nowDone;if(!nowDone)delete S.routineDone[k][id];
+  save();render(1);buzz();if(nowDone){popEl(id);const L=routineItems();if(L.length&&L.every(r=>routineDone(k,r.id))){confetti();toast('🔥 روتین کامل شد! زنجیره: '+tf(routineStreak())+' روز')}}
+}
+function routineStreak(){const list=routineItems();if(!list.length)return 0;let n=0,d=sd(new Date());const full=k=>list.every(r=>routineDone(k,r.id));if(!full(key(d)))d=addD(d,-1);while(full(key(d))&&n<999){n++;d=addD(d,-1)}return n}
+const RPN=['🌅 صبح','☀️ ظهر و عصر','🌙 شب','🕘 بدون ساعت'],rPart=r=>!r.s?3:(+r.s.slice(0,2)<12?0:+r.s.slice(0,2)<18?1:2);
+function routineRow(r,k){return `<div class="routine ${routineDone(k,r.id)?'done':''}${r.id===FLASH?' is-new':''}" data-id="${r.id}" style="--c:${r.c}" onclick="routineToggle('${r.id}','${k}')"><div class="rcheck">${routineDone(k,r.id)?'✓':''}</div><div class="rmain"><div class="rtitle">${esc(r.t)}</div><div class="rmeta">${r.n?esc(r.n):'برنامهٔ ثابت روزانه'}</div></div><div class="rtime">${r.s?tf(r.s):'—'}</div><button class="x" onclick="event.stopPropagation();addRoutine('${r.id}')">✎</button></div>`}
+function vRoutine(){
+ const k=key(cur),list=routineItems(),done=list.filter(r=>routineDone(k,r.id)).length,pct=list.length?Math.round(done/list.length*100):0,isToday=k===key(new Date()),streak=routineStreak(),td=sd(new Date());
+ const l7=[6,5,4,3,2,1,0].map(i=>{const d=addD(td,-i),kk=key(d),dn=list.filter(r=>routineDone(kk,r.id)).length;return{d,kk,c:!list.length||!dn?'none':dn===list.length?'full':'part'}});
+ let h=`<div class="nav"><button class="ib" onclick="go(1)">›</button><h2>🔁 روتین روزانه</h2><button class="ib" onclick="go(-1)">‹</button></div>`;
+ h+=`<div class="card"><div class="hero">${ringHTML(pct)}<div class="hero-t"><b>${isToday?'روتین امروز':'روتین '+jl(cur)}</b><div class="hero-n">${tf(done)} از ${tf(list.length)} انجام شد<br>${streak>0?`<span class="streak">🔥 ${tf(streak)} روز پشت‌سرهم</span>`:'امروز زنجیره‌ات را شروع کن'}</div></div></div>
+ <div class="l7">${l7.map(x=>`<div class="l7d ${x.c} ${x.kk===k?'cur':''}" onclick="cur=fromKey('${x.kk}');render(1)"><i></i><span>${DS[wd(x.d)]}</span></div>`).join('')}</div>
+ ${!isToday?`<button class="btn g" style="width:100%;margin-top:10px" onclick="cur=sd(new Date());render()">برگرد به امروز</button>`:''}
+ <div class="two" style="margin-top:10px"><button class="btn g ${rSort==='time'?'on':''}" style="flex:1;font-size:11px" onclick="rSort='time';render(1)">⏱️ مرتب‌سازی زمانی</button><button class="btn g ${rSort==='title'?'on':''}" style="flex:1;font-size:11px" onclick="rSort='title';render(1)">🔤 مرتب‌سازی نام</button></div></div>`;
+ if(!list.length)h+=`<div class="card"><div class="rempty">کارهایی که تقریباً هر روز تکرار می‌شوند را اینجا اضافه کن؛ مثل ورزش، مطالعه، دارو، بررسی ایمیل یا برنامه‌ریزی فردا.<br><button class="btn" style="margin-top:10px" onclick="addRoutine()">+ ساخت اولین روتین</button></div></div>`;
+ else{
+  if(rSort==='time'){for(let g=0;g<4;g++){const it=list.filter(r=>rPart(r)===g);if(!it.length)continue;const dd=it.filter(r=>routineDone(k,r.id)).length;h+=`<div class="card"><div class="rday"><b>${RPN[g]}</b><span>${tf(dd)}/${tf(it.length)}</span></div><div class="rg">${it.map(r=>routineRow(r,k)).join('')}</div></div>`}}
+  else h+=`<div class="card"><div class="rg">${list.map(r=>routineRow(r,k)).join('')}</div></div>`;
+  h+=`<button class="btn" style="width:100%;margin-bottom:12px" onclick="addRoutine()">+ افزودن برنامهٔ ثابت</button>`}
+ return h+`<div class="card"><div class="rday"><b>نکته</b><span>تیک‌ها برای هر تاریخ جدا هستند</span></div><div class="hint">مثلاً اگر «ورزش» را امروز انجام بدهی و تیک بزنی، فردا دوباره خودکار باز است. زنجیرهٔ 🔥 وقتی ادامه پیدا می‌کند که همهٔ روتین‌های یک روز را انجام داده باشی.</div></div>`}
+function addRoutine(id){
+  const r=id?S.routines.find(x=>x.id===id):null;
+  selC=r?r.c:COL[0];
+  sheet(`<h3>${r?'ویرایش برنامهٔ ثابت':'برنامهٔ ثابت روزانه'}</h3>
+  <label>عنوان</label><input type="text" id="rt_t" value="${esc(r?r.t:'')}" placeholder="مثلاً ورزش، مطالعه، مرور برنامه">
+  <label>توضیح کوتاه (اختیاری)</label><input type="text" id="rt_n" value="${esc(r?r.n:'')}" placeholder="مثلاً ۳۰ دقیقه">
+  <label>ساعت پیشنهادی (اختیاری)</label><input type="time" id="rt_s" value="${r?r.s||'':''}">
+  <label>رنگ</label><div class="cols">${COL.map(c=>`<i style="--c:${c}" class="${c===selC?'on':''}" onclick="selC='${c}';document.querySelectorAll('.cols i').forEach(i=>i.classList.toggle('on',i.style.getPropertyValue('--c')==='${c}'))"></i>`).join('')}</div>
+  <div class="two" style="margin-top:14px"><button class="btn" style="flex:2" onclick="saveRoutine('${id||''}')">ذخیره</button>${r?`<button class="btn r" onclick="delRoutine('${r.id}')">حذف</button>`:''}<button class="btn g" onclick="closeS()">انصراف</button></div>`)
+}
+function saveRoutine(id){
+  const t=$('#rt_t').value.trim();if(!t)return toast('عنوان را بنویس');
+  const o={t,n:$('#rt_n').value.trim(),s:$('#rt_s').value,c:selC,on:true};
+  const r=id?S.routines.find(x=>x.id===id):null;
+  if(r)Object.assign(r,o);else{FLASH=uid();S.routines.push(Object.assign({id:FLASH},o))}
+  S.routines.sort((a,b)=>(a.s||'99:99').localeCompare(b.s||'99:99'));
+  save();closeS();render();toast(r?'روتین ویرایش شد':'روتین روزانه اضافه شد');
+}
+function delRoutine(id){
+  if(!confirm('این برنامهٔ ثابت حذف شود؟ وضعیت‌های ثبت‌شدهٔ آن هم پاک می‌شود.'))return;
+  S.routines=S.routines.filter(r=>r.id!==id);
+  Object.keys(S.routineDone).forEach(k=>{delete S.routineDone[k][id];if(!Object.keys(S.routineDone[k]).length)delete S.routineDone[k]});
+  save();closeS();render();toast('روتین حذف شد');
+}
+
+/* ---------- reminders ---------- */
+function vRem(){const now=Date.now(),td=sd(new Date()),act=S.rem.filter(r=>!r.fired).sort((a,b)=>a.at-b.at),old=S.rem.filter(r=>r.fired).sort((a,b)=>b.at-a.at);
+ const row=r=>{const d=new Date(r.at);return `<div class="row tap ${r.fired?'done':''}${r.id===FLASH?' is-new':''}" onclick="addR('${r.id}')"><div class="i"><b>${esc(r.t)}</b><small>${jfull(d)} · ساعت ${hmOf(r.at)}${r.rep!=='none'?' · '+REP[r.rep]:''}${r.pre.length?'<br>🔔 هشدار: '+preTxt(r.pre):''}${r.note?'<br>'+esc(r.note):''}${r.fired?'':'<br>⏳ '+dur(r.at-now)+' دیگر'}</small></div><button class="x" title="افزودن به تقویم گوشی" onclick="event.stopPropagation();calReminder('${r.id}')">📅</button><button class="x" onclick="event.stopPropagation();delR('${r.id}')">✕</button></div>`};
+ const grp=r=>{const dd=Math.round((sd(new Date(r.at))-td)/864e5);return dd<=0?0:dd===1?1:dd<7?2:3},GN=['امروز','فردا','این هفته','بعداً'];
+ let h='';
+ if(act.length){const n=act[0];h+=`<div class="card nextrem"><div class="mt">🔔 یادآوری بعدی</div><b>${esc(n.t)}</b><div class="cd" id="rn_c" data-at="${n.at}">${dur(n.at-now)} دیگر</div><div class="mt">${jfull(new Date(n.at))} · ساعت ${hmOf(n.at)}</div></div>`}
+ else h+=`<div class="card"><div class="empty">یادآوری فعالی نداری. با دکمهٔ + یکی بساز.</div></div>`;
+ for(let g=0;g<4;g++){const it=act.filter(r=>grp(r)===g);if(it.length)h+=`<div class="card"><div class="rday"><b>${GN[g]}</b><span>${tf(it.length)} مورد</span></div>${it.map(row).join('')}</div>`}
+ if(act.length)h+=`<button class="btn g" style="width:100%;margin-bottom:12px;font-size:12px" onclick="calDay()">📅 افزودن مستقیم یادآوری‌ها به تقویم گوشی</button>`;
+ return h+(old.length?`<div class="card"><b style="font-size:13px">انجام‌شده / گذشته</b>${old.map(row).join('')}<button class="btn g" style="width:100%;margin-top:10px;font-size:12px" onclick="S.rem=S.rem.filter(r=>!r.fired);save();render()">پاک‌کردن گذشته‌ها</button></div>`:'')}
+let rd=sd(new Date());
+function addR(id){const r=id?S.rem.find(x=>x.id===id):null,n=new Date(Date.now()+36e5);rd=r?sd(new Date(r.at)):sd(cur);if(!r&&key(rd)<key(new Date()))rd=sd(new Date());
+ sheet(`<h3>${r?'ویرایش یادآوری':'یادآوری جدید'}</h3><label>موضوع</label><input type="text" id="r_t" value="${esc(r?r.t:'')}" placeholder="چی یادت بیاد؟"><label>توضیح (اختیاری)</label><input type="text" id="r_n" value="${esc(r?r.note:'')}">
+ <label>تاریخ</label><div class="nav"><button class="ib" onclick="rd=addD(rd,1);$('#r_d').textContent=jfull(rd)">›</button><h2 id="r_d" style="font-size:13px">${jfull(rd)}</h2><button class="ib" onclick="rd=addD(rd,-1);$('#r_d').textContent=jfull(rd)">‹</button></div>
+ <label>ساعت</label><input type="time" id="r_h" value="${r?hmOf(r.at).replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c)):p2(n.getHours())+':00'}">
+ <label>پیش‌هشدار (قبل از زمان اصلی)</label>${chips('r_pre',PRE.slice(1),r?r.pre:S.set.remPre,true)}
+ <label>تکرار</label>${chips('r_rep',Object.entries(REP),r?r.rep:'none',false)}
+ <div class="two" style="margin-top:14px"><button class="btn" style="flex:2" onclick="saveR('${id||''}')">ذخیره یادآوری</button><button class="btn g" onclick="closeS()">انصراف</button></div>`)}
+function saveR(id){const t=$('#r_t').value.trim(),h=($('#r_h').value||'09:00').split(':');if(!t)return toast('موضوع را بنویس');const at=new Date(rd.getFullYear(),rd.getMonth(),rd.getDate(),+h[0],+h[1]).getTime(),old=id?S.rem.find(x=>x.id===id):null;
+ if(at<=Date.now()&&(!old||old.at!==at||old.fired))return toast('زمان باید در آینده باشد');
+ const pre=FS.r_pre.sel.slice().sort((a,b)=>a-b),o={t,note:$('#r_n').value.trim(),at,pre,rep:FS.r_rep.sel[0],jd:jp(rd).d,fired:false,pf:pre.filter(m=>at-m*6e4<=Date.now())};
+ if(old)Object.assign(old,o);else{FLASH=uid();S.rem.push(Object.assign({id:FLASH},o))}save();closeS();render();askNotif()}
+function delR(id){S.rem=S.rem.filter(x=>x.id!==id);save();render()}
+
+/* ---------- calendar export (.ics): native phone alarms ---------- */
+/* ---------- clock / alarm / timer ---------- */
+const daysTxt=a=>!a.days.length?'فقط یک بار':a.days.length===7?'هر روز':[0,1,2,3,4].every(i=>a.days.includes(i))&&a.days.length===5?'شنبه تا چهارشنبه':a.days.slice().sort().map(i=>DN[i]).join('، ');
+function nextAlarm(){const now=Date.now(),td=sd(new Date());let best=null;S.alarms.forEach(a=>{if(!a.on)return;for(let i=0;i<8;i++){const d=addD(td,i);if(a.days.length&&!a.days.includes(wd(d)))continue;const t=new Date(d.getFullYear(),d.getMonth(),d.getDate(),a.h,a.m).getTime();if(t>now&&a.last!==key(d)+'T'+a.h+':'+a.m){if(!best||t<best.t)best={t,a};break}}});return best}
+function clockSVG(){let t='';for(let i=0;i<60;i++){const a=i*6*Math.PI/180,r1=i%5?44:40.5,r2=47;t+=`<line x1="${(50+r1*Math.sin(a)).toFixed(2)}" y1="${(50-r1*Math.cos(a)).toFixed(2)}" x2="${(50+r2*Math.sin(a)).toFixed(2)}" y2="${(50-r2*Math.cos(a)).toFixed(2)}" stroke="${i%5?'var(--m)':'var(--b2)'}" stroke-width="${i%5?.6:1.5}" opacity="${i%5?.5:1}"/>`}
+ return `<svg class="aclk" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48.8" fill="var(--p2)" stroke="var(--ln)"/>${t}<line id="hh" class="hand" x1="50" y1="52" x2="50" y2="29" stroke="var(--t)" stroke-width="3.2" stroke-linecap="round"/><line id="mh" class="hand" x1="50" y1="52" x2="50" y2="18" stroke="var(--t)" stroke-width="2.2" stroke-linecap="round"/><line id="sh2" x1="50" y1="58" x2="50" y2="14" stroke="var(--bad)" stroke-width="1" stroke-linecap="round"/><circle cx="50" cy="50" r="2.8" fill="var(--b)"/></svg>`}
+function vTime(){const a=S.alarms,fr=T.total?Math.min(100,Math.max(0,100-(T.run?(T.end-Date.now())/1e3:T.left)/T.total*100)):0;
+ return `<div class="card clk-card">${clockSVG()}<div class="clk-t"><div class="big" id="c_t"></div><div class="cen" id="c_d" style="margin:2px 0 0"></div><div class="cen" id="c_n" style="margin:4px 0 0;font-size:12px"></div></div></div>
+ <div class="card"><b style="font-size:14px">⏳ تایمر</b><div class="tring"><svg viewBox="0 0 120 120" width="190" height="190"><circle cx="60" cy="60" r="54" fill="none" stroke="var(--p3)" stroke-width="7"/><circle id="tmr" cx="60" cy="60" r="54" fill="none" stroke="var(--b)" stroke-width="7" stroke-linecap="round" pathLength="100" stroke-dasharray="${fr} 100" transform="rotate(-90 60 60)"/></svg><div class="tmc"><div class="big" id="tm" style="font-size:38px">${fmtT()}</div><small>${T.run?'در حال شمارش':T.left>0?'متوقف شده':'آمادهٔ شروع'}</small></div></div>
+ <div class="chips" style="margin-top:6px;justify-content:center">${[1,5,10,15,25,45,60].map(m=>`<button class="ch ${m===tmSel?'on':''}" type="button" data-m="${m}" onclick="tmPick(${m})">${tf(m)} دقیقه</button>`).join('')}</div>
+ <div class="two"><input type="number" id="tm_m" min="1" placeholder="دقیقه" value="${tmSel||''}" oninput="tmPick(+this.value,1)"><button class="btn" onclick="tStart()">${T.run?'توقف':T.left>0?'ادامه':'شروع'}</button><button class="btn g" onclick="tReset()">ریست</button></div></div>
+ <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:14px">⏰ زنگ‌ها</b><button class="btn" style="padding:7px 14px" onclick="addA()">+ زنگ</button></div>
+ ${a.length?a.map(x=>`<div class="row tap ${x.on?'':'off'}" onclick="addA('${x.id}')"><div class="i"><b style="font-size:24px;direction:ltr;text-align:right">${hm(x.h,x.m)}</b><small>${esc(x.l)||'زنگ'}</small><div class="dd">${x.days.length?DS.map((l,i)=>`<i class="${x.days.includes(i)?'on':''}">${l}</i>`).join(''):'<em>فقط یک بار</em>'}</div></div><button class="sw ${x.on?'on':''}" onclick="event.stopPropagation();togA('${x.id}')" aria-label="روشن/خاموش"></button><button class="x" onclick="event.stopPropagation();delA('${x.id}')">✕</button></div>`).join(''):'<div class="empty">زنگی تنظیم نشده. با «+ زنگ» بساز؛ برای ویرایش، روی هر زنگ بزن.</div>'}<button class="btn g" style="width:100%;margin-top:10px;font-size:12px" onclick="calDay()">📅 افزودن مستقیم زنگ‌ها به تقویم گوشی</button></div>`}
+let tmSel=25;
+function tmPick(m,typed){tmSel=m>0?m:0;if(!typed)$('#tm_m').value=m;document.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('on',+b.dataset.m===tmSel))}
+const fmtT=()=>{const s=Math.max(0,Math.ceil(T.run?(T.end-Date.now())/1e3:T.left));return tf(p2(Math.floor(s/60))+':'+p2(s%60))};
+function tStart(){const n=Date.now();if(T.run){T.left=Math.max(0,(T.end-n)/1e3);T.run=false;S.timer=null}else{if(T.left<=0){T.total=T.left=Math.max(1,+$('#tm_m').value||25)*60}T.end=n+T.left*1e3;T.run=true;S.timer=Object.assign({},T);askNotif()}save();render();wake()}
+function tReset(){T=Object.assign({},T0);S.timer=null;save();render()}
+let AF={days:[]};
+function addA(id){const a=id?S.alarms.find(x=>x.id===id):null,n=new Date();
+ sheet(`<h3>${a?'ویرایش زنگ':'زنگ جدید'}</h3><label>ساعت</label><input type="time" id="a_h" value="${a?p2(a.h)+':'+p2(a.m):p2(n.getHours())+':'+p2(n.getMinutes())}"><label>عنوان</label><input type="text" id="a_l" value="${esc(a?a.l:'')}" placeholder="مثلاً بیدار شدن">
+ <label>روزهای تکرار (هیچ‌کدام = فقط یک بار)</label>${chips('a_d',DN.map((d,i)=>[i,d]),a?a.days:[0,1,2,3,4,5,6],true)}
+ <div class="two" style="gap:6px;margin-bottom:6px"><button class="btn g" style="font-size:11.5px;padding:7px" onclick="FS.a_d.sel=[0,1,2,3,4,5,6];$('#a_d').innerHTML=chipsIn('a_d')">هر روز</button><button class="btn g" style="font-size:11.5px;padding:7px" onclick="FS.a_d.sel=[0,1,2,3,4];$('#a_d').innerHTML=chipsIn('a_d')">شنبه تا چهارشنبه</button><button class="btn g" style="font-size:11.5px;padding:7px" onclick="FS.a_d.sel=[];$('#a_d').innerHTML=chipsIn('a_d')">یک‌بار</button></div>
+ <label style="display:flex;gap:8px;align-items:center;color:var(--t)"><input type="checkbox" id="a_s" ${!a||a.snz?'checked':''}> اجازهٔ تعویق (دکمه‌های «بعداً یادم بنداز»)</label>
+ <div class="two" style="margin-top:14px"><button class="btn" style="flex:2" onclick="saveA('${id||''}')">ذخیره زنگ</button>${a?`<button class="btn r" onclick="delA('${id}');closeS()">حذف</button>`:''}<button class="btn g" onclick="closeS()">انصراف</button></div>`)}
+function saveA(id){const h=($('#a_h').value||'07:00').split(':'),o={h:+h[0],m:+h[1],l:$('#a_l').value.trim(),days:FS.a_d.sel.slice().sort(),snz:$('#a_s').checked,on:true};let a=id?S.alarms.find(x=>x.id===id):null;if(a)Object.assign(a,o);else{a=Object.assign({id:uid(),last:''},o);S.alarms.push(a)}
+ markAlarm(a);S.alarms.sort((x,y)=>x.h*60+x.m-y.h*60-y.m);save();closeS();render();askNotif();const nx=nextAlarm();if(nx)toast('⏰ زنگ بعدی: '+dur(nx.t-Date.now())+' دیگر')}
+function togA(id){const a=S.alarms.find(x=>x.id===id);a.on=!a.on;if(a.on)markAlarm(a);save();render()}
+function delA(id){S.alarms=S.alarms.filter(x=>x.id!==id);save();render()}
+
+/* ---------- full phone-calendar sync + native alarm + triggers ---------- */
+const BD=['SA','SU','MO','TU','WE','TH','FR'];
+function syncList(){const L=[],now=Date.now(),td=sd(new Date());
+ S.alarms.filter(a=>a.on).forEach(a=>{let t=0;for(let i=0;i<8&&!t;i++){const x=addD(td,i);if(a.days.length&&!a.days.includes(wd(x)))continue;const v=new Date(x.getFullYear(),x.getMonth(),x.getDate(),a.h,a.m).getTime();if(v>now)t=v}
+  if(t)L.push({id:a.id,title:'⏰ '+(a.l||'زنگ'),start:t,end:t+3e5,al:[0],rr:!a.days.length?'':a.days.length===7?'FREQ=DAILY':'FREQ=WEEKLY;BYDAY='+a.days.slice().sort().map(i=>BD[i]).join(',')})});
+ S.rem.filter(r=>!r.fired).forEach(r=>{const al=[0].concat(r.pre.filter(m=>m>0));
+  if(r.rep==='monthly'){let x=Object.assign({},r);for(let i=0;i<12;i++){L.push({id:r.id+'-'+i,title:'🔔 '+r.t,desc:r.note,start:x.at,end:x.at+9e5,al});x=Object.assign({},x,{at:nextAt(x,x.at)})}}
+  else L.push({id:r.id,title:'🔔 '+r.t,desc:r.note,start:r.at,end:r.at+9e5,al,rr:r.rep==='daily'?'FREQ=DAILY':r.rep==='weekly'?'FREQ=WEEKLY':''})});
+ Object.keys(S.tasks).filter(k=>k>=key(td)).sort().forEach(k=>S.tasks[k].forEach(t=>{if(t.d||!t.pre.length)return;const d=fromKey(k),h=t.s.split(':'),st=new Date(d.getFullYear(),d.getMonth(),d.getDate(),+h[0],+h[1]).getTime();
+  if(st>now)L.push({id:t.id,title:'📌 '+t.t,desc:t.n,start:st,end:t.e?new Date(d.getFullYear(),d.getMonth(),d.getDate(),+t.e.split(':')[0],+t.e.split(':')[1]).getTime():st+18e5,al:t.pre})}));
+ return L}
+function calDay(){const L=syncList(),na=L.filter(x=>x.title[0]==='⏰').length,nr=L.filter(x=>x.title[0]==='🔔').length,nt=L.filter(x=>x.title[0]==='📌').length;
+ sheet(`<h3>📅 اتصال مستقیم به تقویم گوشی</h3><div class="hint">رویدادها مستقیماً داخل تقویم اندروید ثبت می‌شوند و همان‌جا مدیریت می‌شوند.</div>
+ <div class="row"><div class="i"><b>${tf(na)} زنگ · ${tf(nr)} یادآوری · ${tf(nt)} کار</b><small>بار اول فقط اجازهٔ دسترسی به تقویم را تأیید کن.</small></div></div>
+ <button class="btn" style="width:100%" onclick="calAll();closeS()">📅 ثبت مستقیم همه در تقویم</button><button class="btn g" style="width:100%;margin-top:8px" onclick="closeS()">بستن</button>`)}
+let trigT=0;
+function trigSync(){if(NATIVE){nSync();return}clearTimeout(trigT);trigT=setTimeout(async()=>{try{if(!swReg||!('showTrigger' in Notification.prototype)||typeof TimestampTrigger==='undefined'||Notification.permission!=='granted')return;
+ (await swReg.getNotifications({includeTriggered:true})).forEach(n=>{if((n.tag||'').startsWith('t-'))n.close()});
+ const now=Date.now(),H=now+7*864e5,out=[],td=sd(new Date());
+ S.rem.filter(r=>!r.fired).forEach(r=>{[0].concat(r.pre.filter(m=>m>0)).forEach(m=>out.push({id:r.id+m,ts:r.at-m*6e4,t:'🔔 '+r.t,b:r.note||''}))});
+ S.alarms.filter(a=>a.on).forEach(a=>{for(let i=0;i<8;i++){const x=addD(td,i);if(a.days.length&&!a.days.includes(wd(x)))continue;out.push({id:a.id+i,ts:new Date(x.getFullYear(),x.getMonth(),x.getDate(),a.h,a.m).getTime(),t:'⏰ '+(a.l||'زنگ'),b:''});if(!a.days.length)break}});
+ for(let i=0;i<8;i++){const k=key(addD(td,i));(S.tasks[k]||[]).forEach(t=>{if(t.d)return;const h=t.s.split(':'),st=new Date(fromKey(k).getFullYear(),fromKey(k).getMonth(),fromKey(k).getDate(),+h[0],+h[1]).getTime();t.pre.forEach(m=>out.push({id:t.id+m,ts:st-m*6e4,t:'📌 '+t.t,b:t.n||''}))})}
+ out.filter(x=>x.ts>now+5e3&&x.ts<H).sort((a,b)=>a.ts-b.ts).slice(0,60).forEach(x=>swReg.showNotification(x.t,{tag:'t-'+x.id+'-'+x.ts,body:x.b,showTrigger:new TimestampTrigger(x.ts),requireInteraction:true,vibrate:[300,150,300,150,600],icon:'icon-192.png',lang:'fa',dir:'rtl'}))}catch(e){}},1500)}
+
+/* ---------- settings ---------- */
+function openSet(keep){const y=keep?$('#sh').scrollTop:0,c=S.set,ns=NATIVE?(nPerm==='granted'?'granted':nPerm==='denied'?'denied':'default'):('Notification' in window?Notification.permission:'na'),
+ st={granted:'✅ فعال است',denied:'⛔ مسدود شده — از تنظیمات مرورگر/سایت اجازه بده',default:'خاموش است',na:'این مرورگر اعلان را پشتیبانی نمی‌کند (در آیفون، اول برنامه را به «صفحهٔ اصلی» اضافه کن)'}[ns],
+ sw=(k,t,s)=>`<div class="row"><div class="i"><b>${t}</b>${s?`<small>${s}</small>`:''}</div><button class="sw ${c[k]?'on':''}" onclick="stg('${k}',${!c[k]})"></button></div>`;
+ sheet(`<h3>⚙️ تنظیمات</h3>
+ ${acctHtml()}
+ <div class="sg">ظاهر</div><label>تم</label>${chips('s_theme',[['dark','تیره'],['light','روشن'],['auto','خودکار (مثل گوشی)']],c.theme)}<label>اندازهٔ نوشته‌ها</label>${chips('s_fs',[['s','کوچک'],['m','متوسط'],['l','بزرگ']],c.fs)}
+ <div class="sg">صدا و لرزش هشدار</div>${sw('sound','صدای هشدار')}<label>صدای داخل برنامه</label>${chips('s_tone',[['classic','کلاسیک'],['soft','ملایم'],['urgent','تند و بلند']],c.tone)}
+ <div class="hint" style="margin-top:8px">صداهای سیستم (آلارم/اعلان): ${NATIVE?(nNativeStatus&&nNativeStatus.alarmSound?'⏰ سفارشی':'⏰ پیش‌فرض')+' · '+(nNativeStatus&&nNativeStatus.notificationSound?'🔔 سفارشی':'🔔 پیش‌فرض'):'فقط در نسخهٔ اندروید'}</div>
+ <div class="two" style="margin-top:8px"><button class="btn g" onclick="pickPhoneSound('alarm')">⏰ انتخاب صدای آلارم</button><button class="btn g" onclick="pickPhoneSound('notification')">🔔 انتخاب صدای اعلان</button></div>
+ <div class="hint">از لیست زنگ‌های گوشی انتخاب کن؛ این صدا بیرون از برنامه هم برای زنگ‌ها پخش می‌شود.</div>
+ <div class="two" style="margin-top:6px"><button class="btn g" onclick="resetPhoneSound('alarm')">↩️ صدای آلارم پیش‌فرض</button><button class="btn g" onclick="resetPhoneSound('notification')">↩️ صدای اعلان پیش‌فرض</button></div>
+ <label>بلندی صدا</label><input type="range" min=".1" max="1" step=".05" value="${c.vol}" oninput="S.set.vol=+this.value;save()" onchange="testTone()">${sw('vib','لرزش')}
+ <div class="two" style="margin-top:8px"><button class="btn g" onclick="testTone()">🔊 تست صدا</button><button class="btn" onclick="testAlert()">🧪 تست هشدار کامل</button></div>
+ <div class="sg">هشدار پایدار (تا جواب ندهی تمام نمی‌شود)</div>${sw('persist','تکرار صدا تا پاسخ','صدا هر چند ثانیه تکرار می‌شود و صفحهٔ هشدار روی همه‌چیز می‌ماند')}
+ <label>مدت زنگ در هر نوبت</label>${chips('s_ringSec',[[30,'۳۰ ثانیه'],[60,'۱ دقیقه'],[120,'۲ دقیقه'],[300,'۵ دقیقه']],c.ringSec)}
+ <label>اگر جواب ندادم، دوباره هشدار بده</label>${chips('s_autoRep',[[0,'هیچ‌وقت'],[3,'۳ بار'],[5,'۵ بار'],[10,'۱۰ بار']],c.autoRep)}<label>فاصلهٔ تکرار خودکار</label>${chips('s_autoGap',[[2,'۲ دقیقه'],[5,'۵ دقیقه'],[10,'۱۰ دقیقه']],c.autoGap)}
+ <div class="hint">اگر بعد از همهٔ تکرارها هم جواب ندهی، مورد در بخش «از دست رفته» می‌ماند تا خودت ببینی‌اش؛ هیچ هشداری بی‌صدا حذف نمی‌شود.</div>
+ <label>تعویق پیش‌فرض</label>${chips('s_snooze',[[5,'۵ دقیقه'],[10,'۱۰ دقیقه'],[15,'۱۵ دقیقه'],[30,'۳۰ دقیقه']],c.snooze)}
+ <div class="sg">پیش‌فرض هشدارها</div><label>کارهای جدید</label>${chips('s_taskPre',PRE,c.taskPre,true)}<label>یادآوری‌های جدید</label>${chips('s_remPre',PRE.slice(1),c.remPre,true)}
+ ${sw('sum','خلاصهٔ صبحگاهی','هر روز در ساعت زیر، کارها و یادآوری‌های امروز را یادآوری می‌کند')}<input type="time" value="${c.sumAt}" onchange="S.set.sumAt=this.value||'07:30';save()">
+ <div class="sg">اعلان سیستم</div><div class="row"><div class="i"><b>وضعیت: ${nNativeStatus&&nNativeStatus.notificationsEnabled&&nNativeStatus.alertChannelEnabled&&nNativeStatus.alarmChannelEnabled?'✅ فعال است':'⛔ نیاز به فعال‌سازی'}</b><small>اعلان‌ها، یادآوری‌ها و زنگ‌ها حتی وقتی DayFlow بسته یا گوشی قفل است زمان‌بندی می‌شوند.</small></div><button class="btn" style="padding:8px 14px" onclick="fixNotifications()">بررسی و فعال‌سازی</button></div>
+ ${sw('wake','روشن ماندن صفحه','تا وقتی برنامه باز است گوشی خاموش نمی‌شود تا هشدارها دقیق برسند (مصرف باتری بیشتر)')}
+ <div class="sg">قابلیت اطمینان</div><div class="hint">در نسخهٔ اندروید، اعلان‌ها و زنگ‌ها توسط سیستم‌عامل زمان‌بندی می‌شوند؛ بنابراین بیرون از برنامه و روی صفحهٔ قفل هم نمایش داده می‌شوند.</div><button class="btn" style="width:100%;margin-top:6px" onclick="calDay()">📅 افزودن مستقیم به تقویم گوشی</button>
+ <div class="sg">اطلاعات</div><div class="two" style="gap:8px"><button class="btn g" style="font-size:12px" onclick="exportData()">⬇️ پشتیبان‌گیری</button><label class="btn g" style="font-size:12px;margin:0;text-align:center;color:var(--t)">⬆️ بازیابی<input type="file" accept=".json" style="display:none" onchange="importData(this)"></label></div>
+ <button class="btn r" style="width:100%;margin-top:10px;font-size:12px" onclick="wipe()">🗑️ پاک‌کردن همهٔ اطلاعات</button>
+ <button class="btn g" style="width:100%;margin-top:16px" onclick="closeS()">بستن</button>`);setOpen=1;$('#sh').scrollTop=y}
+function stg(k,v){S.set[k]=v;save();applyTheme();wake();openSet(1)}
+function testAlert(){closeS();push({kind:'test',title:'این یک هشدار آزمایشی است',note:'اگر صدا و لرزش را دریافت کردی، همه‌چیز آماده است.',due:Date.now()});askNotif();ringTick(Date.now())}
+function exportData(){saveFile('planner-backup-'+key(new Date())+'.json',JSON.stringify(S),'application/json')}
+function importData(i){const f=i.files[0];if(!f)return;if(!confirm('همهٔ اطلاعات فعلی با این فایل پشتیبان جایگزین شود؟')){i.value='';return}const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d.tasks!=='object')throw 0;d.mt=Date.now();if(CU)d.uid=CU.uid;else delete d.uid;localStorage.setItem('planner_v1',JSON.stringify(d));location.reload()}catch(e){toast('فایل پشتیبان معتبر نیست')}};r.readAsText(f)}
+function wipe(){if(confirm('همهٔ کارها، یادداشت‌ها، یادآوری‌ها و زنگ‌ها پاک شود؟'+(CU?' (نسخهٔ ذخیره‌شده در حساب گوگل هم پاک می‌شود)':'')+' این کار برگشت ندارد.')){(async()=>{try{if(CU&&cDB)await cRef().delete()}catch(e){toast('پاک‌کردن نسخهٔ حساب ممکن نشد؛ اینترنت را بررسی کن');return}localStorage.removeItem('planner_v1');location.reload()})()}}
+
+/* ---------- wake lock ---------- */
+let WL=null;async function wake(){try{const want=(S.set.wake||T.run)&&!document.hidden;if(want&&'wakeLock' in navigator&&!WL){WL=await navigator.wakeLock.request('screen');WL.addEventListener('release',()=>WL=null)}else if(!want&&WL){await WL.release();WL=null}}catch(e){}}
+
+/* ---------- core ---------- */
+function setTab(t){tab=t;navDx=0;render();window.scrollTo(0,0)}
+function render(keep){const y=scrollY,v=$('#v'),ob=keep?[...v.querySelectorAll('.bar i')].map(i=>i.style.width):[],orn=keep?[...v.querySelectorAll('.rfg')].map(e=>e.getAttribute('stroke-dasharray')):[];
+ v.innerHTML={day:vDay,week:vWeek,routine:vRoutine,month:vMonth,notes:vNotes,rem:vRem,time:vTime}[tab]();
+ v.classList.toggle('enter',!keep);
+ if(!keep){v.style.setProperty('--dx',navDx+'px');navDx=0}
+ else{v.querySelectorAll('.rfg').forEach((e,n)=>{const t=e.getAttribute('stroke-dasharray');if(orn[n]&&orn[n]!==t){e.setAttribute('stroke-dasharray',orn[n]);void e.getBoundingClientRect();e.setAttribute('stroke-dasharray',t)}});v.querySelectorAll('.bar i').forEach((i,n)=>{const t=i.style.width;if(ob[n]&&ob[n]!==t){i.style.width=ob[n];void i.offsetWidth;i.style.width=t}})}
+ document.querySelectorAll('.tb').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));$('#fab').style.display=(tab==='rem')?'block':'none';
+ if(keep)scrollTo(0,y);else if(tab==='day'&&key(cur)===key(new Date())){const n=$('#nowrow');n&&setTimeout(()=>n.scrollIntoView({block:'center',behavior:'smooth'}),380)}FLASH='';updClock();bnRender()}
+$('#tb').onclick=e=>{const b=e.target.closest('.tb');b&&setTab(b.dataset.t)};
+$('#fab').onclick=()=>({rem:()=>addR()}[tab])();
+$('#th').onclick=()=>{S.set.theme=document.body.classList.contains('light')?'dark':'light';save();applyTheme()};
+$('#gear').onclick=()=>openSet();
+const HA={};function setHand(id,deg){const e=$('#'+id);if(!e)return;const h=HA[id]||(HA[id]={p:deg,o:0});if(deg<h.p-180)h.o+=360;else if(deg>h.p+180)h.o-=360;h.p=deg;const v=`rotate(${deg+h.o}deg)`;if(!e.style.transform){e.style.transition='none';e.style.transform=v;void e.getBoundingClientRect();e.style.transition=''}else e.style.transform=v}
+function updClock(){const n=new Date(),s=n.getSeconds();$('#clk').textContent=hm(n.getHours(),n.getMinutes());$('#sub').textContent=jfull(n);
+ if($('#c_t')){$('#c_t').textContent=tf(p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(s));$('#c_d').textContent=jfull(n);const nx=nextAlarm();$('#c_n').textContent=nx?'⏰ زنگ بعدی '+hmOf(nx.t)+' · '+dur(nx.t-n.getTime())+' دیگر'+(nx.a.l?' ('+nx.a.l+')':''):'هیچ زنگ فعالی نداری';
+  if($('#hh')){const hh=n.getHours()%12,m=n.getMinutes();setHand('hh',hh*30+m*.5);setHand('mh',m*6+s*.1);const e=$('#sh2');if(e)e.style.transform=`rotate(${s*6}deg)`}}
+ if($('#tm')&&T.run){$('#tm').textContent=fmtT();$('#tmr').setAttribute('stroke-dasharray',Math.min(100,Math.max(0,100-(T.end-n.getTime())/1e3/T.total*100)).toFixed(2)+' 100')}
+ const rc=$('#rn_c');if(rc){const at=+rc.dataset.at;rc.textContent=at>n.getTime()?dur(at-n.getTime())+' دیگر':'همین الان'}}
+function tick(){const now=Date.now();sched(now);ringTick(now);updClock();bnRender();
+ if(dirty){dirty=false;save();const a=document.activeElement;if((tab==='rem'||tab==='day'||tab==='time')&&!$('#ov').classList.contains('on')&&!(a&&/INPUT|TEXTAREA/.test(a.tagName)))render(1)}
+ else if(tab==='rem'&&new Date().getSeconds()===0&&!$('#ov').classList.contains('on'))render(1)}
+function startTicker(){try{const w=new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},1000)'],{type:'text/javascript'})));w.onmessage=tick}catch(e){setInterval(tick,1000)}}
+
+/* ===== حساب گوگل + همگام‌سازی ابری (Firebase Auth + Firestore) ===== */
+const FB_CFG={apiKey:'AIzaSyCsgZyuRHDzpG8gKduDHW14LhwqvQcsXAY',authDomain:'dayflow-2f339.firebaseapp.com',projectId:'dayflow-2f339',appId:'1:616628450687:android:683cc3e1e35dc0d542964a'};
+var CU=null,cAuth=null,cDB=null,cUpT=0,cBusy=false,cMsg='';
+const hasData=d=>{try{return !!d&&(Object.values(d.tasks||{}).some(a=>a&&a.length)||Object.values(d.notes||{}).some(v=>v)||(d.rem||[]).length>0||(d.alarms||[]).length>0||(d.routines||[]).length>0)}catch(e){return false}};
+const cRef=()=>cDB.collection('users').doc(CU.uid);
+function cloudInit(){
+ if(typeof firebase==='undefined'){return}
+ try{
+  firebase.initializeApp(FB_CFG);cAuth=firebase.auth();cDB=firebase.firestore();
+  try{cDB.settings({experimentalAutoDetectLongPolling:true,merge:true})}catch(e){}
+  cAuth.onAuthStateChanged(u=>{CU=u||null;if(CU)cloudStart();else if(setOpen)openSet(1)});
+ }catch(e){console.warn('firebase init',e)}
+}
+function cloudApply(d,mt){d.uid=CU.uid;d.mt=mt;localStorage.setItem('planner_v1',JSON.stringify(d));location.reload()}
+async function cloudPush(now){
+ if(!CU||!cDB)return;clearTimeout(cUpT);cUpT=0;
+ const go=async()=>{cUpT=0;try{S.uid=CU.uid;if(!S.mt)S.mt=Date.now();const js=JSON.stringify(S);localStorage.setItem('planner_v1',js);await cRef().set({data:js,mt:S.mt});cMsg=''}catch(e){cMsg='⚠️ همگام‌سازی انجام نشد (اینترنت؟)'}};
+ if(now)return go();cUpT=setTimeout(go,1500)
+}
+async function cloudStart(){
+ if(!CU||!cDB||cBusy)return;cBusy=true;
+ try{
+  if(cUpT){await cloudPush(true)}
+  const snap=await cRef().get();const cl=snap.exists?snap.data():null;
+  if(!cl){await cloudPush(true)}
+  else{
+   const cd=JSON.parse(cl.data),lo=S,cm=cl.mt||0,lm=lo.mt||0;
+   if((lo.uid&&lo.uid!==CU.uid)||!hasData(lo)){cBusy=false;return cloudApply(cd,cm)}
+   if(!lo.uid&&!hasData(cd)){S.mt=Date.now();await cloudPush(true)}
+   else if(!lo.uid){
+    if(confirm('این حساب از قبل اطلاعات دارد.\n\nتأیید = اطلاعات حساب روی این گوشی بارگذاری شود (اطلاعات فعلی گوشی جایگزین می‌شود)\nانصراف = اطلاعات فعلی گوشی جایگزین اطلاعات حساب شود')){cBusy=false;return cloudApply(cd,cm)}
+    S.mt=Date.now();await cloudPush(true)
+   }else if(cm>lm){cBusy=false;return cloudApply(cd,cm)}
+   else if(lm>cm){await cloudPush(true)}
+   else{cMsg=''}
+  }
+ }catch(e){cMsg='⚠️ همگام‌سازی انجام نشد (اینترنت؟)'}
+ cBusy=false;if(setOpen)openSet(1)
+}
+async function cloudSyncNow(){await cloudStart();toast(cMsg||'همگام شد ✅')}
+function fbPlug(){
+ var p=NP.FirebaseAuthentication;
+ if(!p&&CAP){try{p=CAP.registerPlugin('FirebaseAuthentication')}catch(e){}}
+ if(!p&&CAP&&CAP.Plugins)p=CAP.Plugins.FirebaseAuthentication;
+ return p
+}
+async function gLogin(){
+ if(!cAuth){toast('سرویس ورود بارگذاری نشد');return}
+ try{
+  if(NATIVE){
+   const FA=fbPlug();
+   if(!FA)throw new Error('پلاگین بومی ورود پیدا نشد. پلاگین‌های نصب‌شده: '+((CAP&&CAP.PluginHeaders)||[]).map(function(h){return h.name}).join(','));
+   const r=await FA.signInWithGoogle({skipNativeAuth:true});
+   const t=r&&r.credential&&r.credential.idToken;if(!t)throw new Error('no idToken');
+   await cAuth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(t));
+  }else{await cAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}
+ }catch(e){const m=String((e&&e.message)||e);if(!/cancel|closed|12501/i.test(m))toast('ورود ناموفق: '+m.slice(0,260),9000)}
+}
+async function gLogout(){
+ if(!confirm('از حساب خارج می‌شوی؟\nاطلاعات در حساب گوگلت می‌ماند و از روی این گوشی پاک می‌شود.'))return;
+ await cloudPush(true);
+ if(cMsg&&!confirm('آخرین تغییرات هنوز به حساب ارسال نشده و با خروج از بین می‌رود. ادامه می‌دهی؟'))return;
+ try{if(NATIVE){var FA=fbPlug();if(FA)await FA.signOut()}}catch(e){}
+ try{await cAuth.signOut()}catch(e){}
+ localStorage.removeItem('planner_v1');location.reload()
+}
+function acctHtml(){
+ if(!cAuth)return `<div class="sg">حساب کاربری</div><div class="hint">⛔ سرویس ورود با گوگل بارگذاری نشده است. این نسخه باید با Workflow جدید (که فایل‌های Firebase را داخل www/vendor می‌گذارد) ساخته شود؛ اگر index.html را مستقیم یا با بیلد قدیمی باز کرده‌ای، این بخش کار نمی‌کند.</div>`;
+ if(CU)return `<div class="sg">حساب کاربری</div><div class="row"><div class="i"><b>${esc(CU.displayName||'حساب گوگل')}</b><small dir="ltr" style="text-align:right">${esc(CU.email||'')}</small><small>${cMsg||'✅ اطلاعات به این حساب لینک است و همگام می‌شود'}</small></div></div><div class="two" style="gap:8px;margin-top:6px"><button class="btn g" style="font-size:12px;flex:1" onclick="cloudSyncNow()">🔄 همگام‌سازی</button><button class="btn r" style="font-size:12px;flex:1" onclick="gLogout()">خروج از حساب</button></div>`;
+ return `<div class="sg">حساب کاربری</div><div class="hint">با ورود به حساب گوگل، اطلاعات به حساب تو لینک می‌شود و روی هر گوشی دیگر هم با همان حساب در دسترس است.</div><button class="btn" style="width:100%;margin-top:6px" onclick="gLogin()">ورود با گوگل</button>`}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&CU)cloudStart()});
+window.addEventListener('online',()=>{if(CU)cloudStart()});
+applyTheme();render();tick();startTicker();wake();cloudInit();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){ac();wake();tick()}});
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+if(!NATIVE&&'serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js').then(r=>swReg=r).catch(()=>{});navigator.serviceWorker.ready.then(r=>swReg=r).catch(()=>{})}
+if(NATIVE){nRefreshPerm();nChannel().then(nSyncNow);nStatusBar();nHooks()}
+</script>
+</body>
+</html>
