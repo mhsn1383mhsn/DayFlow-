@@ -238,20 +238,92 @@ mark{background:rgba(255,176,32,.35);color:inherit;border-radius:4px;padding:0 2
 <script src="vendor/firebase-firestore-compat.js"></script>
 <script>
 /* ===== Android bridge (Capacitor) — در مرورگر غیرفعال است ===== */
-var nNativeStatus=null;var CAP=window.Capacitor,NATIVE=!!(CAP&&typeof CAP.isNativePlatform==='function'&&CAP.isNativePlatform()),NP={},nPerm='prompt',nTm=0;
-if(NATIVE)['LocalNotifications','App','Filesystem','Share','StatusBar','DayFlowCalendar','DayFlowNative','FirebaseAuthentication'].forEach(function(n){try{NP[n]=CAP.registerPlugin(n)}catch(e){}});
+var nNativeStatus=null;var CAP=window.Capacitor||null,NP={},nPerm='prompt',nTm=0;
+function _detectNative(){
+  try{
+    if(!window.Capacitor)CAP=null;
+    else CAP=window.Capacitor;
+    if(!CAP)return false;
+    if(typeof CAP.isNativePlatform==='function'&&CAP.isNativePlatform())return true;
+    if(typeof CAP.getPlatform==='function'){var pl=CAP.getPlatform();if(pl&&pl!=='web')return true}
+    if(CAP.Plugins||CAP.PluginHeaders||CAP.pluginHeaders)return true;
+    // Android WebView injected bridge
+    if(window.androidBridge||window.CapacitorWebView||window.webkit)return true;
+  }catch(e){}
+  return false;
+}
+function _ensurePlugin(name){
+  try{
+    if(!CAP)CAP=window.Capacitor||null;
+    if(!CAP)return null;
+    if(NP[name])return NP[name];
+    if(CAP.Plugins&&CAP.Plugins[name]){NP[name]=CAP.Plugins[name];return NP[name]}
+    if(typeof CAP.registerPlugin==='function'){
+      NP[name]=CAP.registerPlugin(name);
+      return NP[name];
+    }
+  }catch(e){}
+  return NP[name]||null;
+}
+var NATIVE=_detectNative();
+if(NATIVE){
+  ['LocalNotifications','App','Filesystem','Share','StatusBar','DayFlowCalendar','DayFlowNative','FirebaseAuthentication'].forEach(function(n){
+    _ensurePlugin(n);
+  });
+}
 (function(){var a0=alAct,t0=applyTheme;
  alAct=function(a,v){a0(a,v);if(NATIVE&&a!=='mute'){try{NP.LocalNotifications.removeAllDeliveredNotifications()}catch(e){}}};
  applyTheme=function(){t0();nStatusBar()}})();
 async function nStatusBar(){if(!NATIVE)return;try{var l=document.body.classList.contains('light');if(NP.StatusBar){await NP.StatusBar.setOverlaysWebView({overlay:false});await NP.StatusBar.setStyle({style:l?'LIGHT':'DARK'});await NP.StatusBar.setBackgroundColor({color:l?'#F7FAFF':'#03070C'});if(NP.StatusBar.setNavigationBarColor)await NP.StatusBar.setNavigationBarColor({color:l?'#F7FAFF':'#03070C'});}}catch(e){}
 }
-async function nRefreshPerm(){if(!NATIVE)return;try{if(NP.DayFlowNative){var st=await NP.DayFlowNative.status();nNativeStatus=st;nPerm=st.notificationsEnabled?'granted':'denied'}else{var r=await NP.LocalNotifications.checkPermissions();nPerm=r.display}}catch(e){}bnSig='';try{bnRender()}catch(e){} }
-async function nChannel(){try{if(NP.DayFlowNative)await NP.DayFlowNative.init({});await NP.LocalNotifications.createChannel({id:'dayflow-alerts',name:'اعلان‌های DayFlow',description:'اعلان‌ها و یادآوری‌های DayFlow',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#178BFF'});await NP.LocalNotifications.createChannel({id:'dayflow-alarms',name:'زنگ‌های DayFlow',description:'زنگ‌های DayFlow با صدای آلارم گوشی',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#FFB020'});}catch(e){} }
-async function nExactEnsure(){try{var r=await NP.LocalNotifications.checkExactNotificationSetting();if(r&&r.exact_alarm==='denied'){toast('برای زنگ دقیق، اجازهٔ «آلارم و یادآوری» را روشن کن',6000);if(NP.DayFlowNative)await NP.DayFlowNative.openExactAlarmSettings();else await NP.LocalNotifications.changeExactNotificationSetting()}}catch(e){} }
+async function nRefreshPerm(){if(!NATIVE&&!_detectNative())return;NATIVE=true;try{var plug=_ensurePlugin('DayFlowNative');if(plug&&typeof plug.status==='function'){var st=await plug.status();nNativeStatus=st;nPerm=st.notificationsEnabled?'granted':'denied'}else if(NP.LocalNotifications){var r=await NP.LocalNotifications.checkPermissions();nPerm=r.display}}catch(e){}bnSig='';try{bnRender()}catch(e){} }
+async function nChannel(){try{var plug=_ensurePlugin('DayFlowNative');if(plug&&typeof plug.init==='function')await plug.init({});if(NP.LocalNotifications){await NP.LocalNotifications.createChannel({id:'dayflow-alerts',name:'اعلان‌های DayFlow',description:'اعلان‌ها و یادآوری‌های DayFlow',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#178BFF'});await NP.LocalNotifications.createChannel({id:'dayflow-alarms',name:'زنگ‌های DayFlow',description:'زنگ‌های DayFlow با صدای آلارم گوشی',importance:5,visibility:1,vibration:true,lights:true,lightColor:'#FFB020'});}}catch(e){} }
+async function nExactEnsure(){try{var r=await NP.LocalNotifications.checkExactNotificationSetting();if(r&&r.exact_alarm==='denied'){toast('برای زنگ دقیق، اجازهٔ «آلارم و یادآوری» را روشن کن',6000);var plug=_ensurePlugin('DayFlowNative');if(plug&&plug.openExactAlarmSettings)await plug.openExactAlarmSettings();else await NP.LocalNotifications.changeExactNotificationSetting()}}catch(e){} }
 async function nAsk(){try{var r=await NP.LocalNotifications.requestPermissions();nPerm=r.display}catch(e){}await nChannel();await nRefreshPerm();if(nPerm==='granted')await nExactEnsure();bnSig='';try{bnRender()}catch(e){}if(setOpen)openSet(1);nSync()}
-async function fixNotifications(){if(!NATIVE)return;if(nNativeStatus&&nNativeStatus.notificationsEnabled&&(!nNativeStatus.alertChannelEnabled||!nNativeStatus.alarmChannelEnabled)){try{await NP.DayFlowNative.openNotificationSettings()}catch(e){}return}await nAsk()}
-async function pickPhoneSound(kind){if(!NATIVE||!NP.DayFlowNative){toast('این قابلیت فقط در نسخهٔ اندروید فعال است');return}try{var r=await NP.DayFlowNative.pickSound({kind:kind});nNativeStatus=r;await nChannel();await nRefreshPerm();if(setOpen)openSet(1);var has=kind==='alarm'?(r&&r.alarmSound):(r&&r.notificationSound);toast(has?(kind==='alarm'?'✓ صدای آلارم گوشی انتخاب شد':'✓ صدای اعلان گوشی انتخاب شد'):'✓ صدای پیش‌فرض سیستم تنظیم شد',2500);nSync()}catch(e){if(String(e).indexOf('لغو')<0&&String(e).indexOf('cancel')<0)toast('انتخاب صدا انجام نشد: '+(e.message||e),3500)}}
-async function resetPhoneSound(kind){if(!NATIVE||!NP.DayFlowNative){toast('این قابلیت فقط در نسخهٔ اندروید فعال است');return}try{var r=await NP.DayFlowNative.resetSound({kind:kind});nNativeStatus=r;await nChannel();await nRefreshPerm();if(setOpen)openSet(1);toast('صدای پیش‌فرض گوشی برگشت',2200);nSync()}catch(e){toast('بازگردانی صدا ممکن نشد',2500)}}
+async function fixNotifications(){if(!NATIVE&&!_detectNative())return;if(nNativeStatus&&nNativeStatus.notificationsEnabled&&(!nNativeStatus.alertChannelEnabled||!nNativeStatus.alarmChannelEnabled)){try{var plug=_ensurePlugin('DayFlowNative');if(plug&&plug.openNotificationSettings)await plug.openNotificationSettings()}catch(e){}return}await nAsk()}
+async function pickPhoneSound(kind){
+  NATIVE=_detectNative();
+  var plug=_ensurePlugin('DayFlowNative');
+  if(!NATIVE){
+    toast('پل اندروید وصل نیست. مطمئن شو از APK نصب‌شده استفاده می‌کنی (نه مرورگر/PWA)');
+    return;
+  }
+  if(!plug || typeof plug.pickSound!=='function'){
+    toast('پلاگین صدا در این بیلد نیست. باید از نو بیلد بگیری (patch + sync)');
+    return;
+  }
+  try{
+    var r=await plug.pickSound({kind:kind||'notification'});
+    nNativeStatus=r;
+    await nChannel();
+    await nRefreshPerm();
+    if(setOpen)openSet(1);
+    var has=kind==='alarm'?(r&&r.alarmSound):(r&&r.notificationSound);
+    toast(has?(kind==='alarm'?'✓ صدای آلارم انتخاب شد':'✓ صدای اعلان انتخاب شد'):'✓ صدای پیش‌فرض سیستم',2500);
+    nSync();
+  }catch(e){
+    var msg=String((e&&(e.message||e.errorMessage))||e||'');
+    if(/لغو|cancel|Cancel/i.test(msg))return;
+    // Common Capacitor message when native class missing
+    if(/not implemented|is not implemented|UNIMPLEMENTED/i.test(msg)){
+      toast('پلاگین native صدا در APK نیست — دوباره بیلد بگیر',4500);
+      return;
+    }
+    toast('خطای انتخاب صدا: '+msg.slice(0,90),4500);
+  }
+}
+async function resetPhoneSound(kind){
+  NATIVE=_detectNative();
+  var plug=_ensurePlugin('DayFlowNative');
+  if(!NATIVE){toast('پل اندروید وصل نیست');return}
+  if(!plug || typeof plug.resetSound!=='function'){toast('پلاگین صدا در این بیلد نیست');return}
+  try{
+    var r=await plug.resetSound({kind:kind||'notification'});
+    nNativeStatus=r;await nChannel();await nRefreshPerm();
+    if(setOpen)openSet(1);
+    toast('صدای پیش‌فرض برگشت',2200);nSync();
+  }catch(e){toast('بازگردانی ممکن نشد',2500)}
+}
 function nId(str){var h=7;for(var i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))|0;return Math.abs(h)%2147480000+1}
 function nOcc(now,H){var out=[],td=sd(new Date(now));
  S.rem.filter(function(r){return!r.fired}).forEach(function(r){var x=Object.assign({},r),g=0;while(x.at<H&&g<60){[0].concat((x.pre||[]).filter(function(m){return m>0})).forEach(function(m){out.push({id:r.id+':'+m,ts:x.at-m*6e4,t:(m?'⏳ ':'🔔 ')+r.t,b:(m?'تا '+preTxt([m])+' دیگر':'')+(r.note?(m?' · ':'')+r.note:'')})});if(r.rep==='none')break;x.at=nextAt(x,x.at);g++}});
@@ -263,7 +335,7 @@ function nSync(){clearTimeout(nTm);nTm=setTimeout(nSyncNow,1200)}
 async function nSyncNow(){if(!NATIVE)return;try{var LN=NP.LocalNotifications,pm=await LN.checkPermissions();nPerm=pm.display;if(nPerm!=='granted')return;await nChannel();
  var pend=await LN.getPending();if(pend&&pend.notifications&&pend.notifications.length)await LN.cancel({notifications:pend.notifications.map(function(n){return{id:n.id}})});
  var now=Date.now(),H=now+21*864e5,list=nOcc(now,H).filter(function(x){return x.ts>now+3000&&x.ts<H}).sort(function(a,b){return a.ts-b.ts}).slice(0,400).map(function(x){return{id:nId(x.id+'@'+x.ts),title:x.t,body:x.b||'',largeBody:x.b||'',schedule:{at:new Date(x.ts),allowWhileIdle:true},channelId:(String(x.t).indexOf('⏰')===0?'dayflow-alarms':'dayflow-alerts'),smallIcon:'ic_stat_dayflow',iconColor:'#178BFF',autoCancel:true,extra:{k:x.id}}});
- if(list.length)await LN.schedule({notifications:list}); if(NP.DayFlowNative&&NP.DayFlowNative.scheduleAlarms) await NP.DayFlowNative.scheduleAlarms({alarms:phoneAlarmList()})}catch(e){console.warn('nSync',e)}}
+ if(list.length)await LN.schedule({notifications:list}); var plug=_ensurePlugin('DayFlowNative');if(plug&&plug.scheduleAlarms) await plug.scheduleAlarms({alarms:phoneAlarmList()})}catch(e){console.warn('nSync',e)}}
 function phoneAlarmList(){var out=[],now=Date.now(),td=sd(new Date());S.alarms.filter(function(a){return a.on}).forEach(function(a){for(var i=0;i<22;i++){var d=addD(td,i);if(a.days.length&&!a.days.includes(wd(d)))continue;var ts=new Date(d.getFullYear(),d.getMonth(),d.getDate(),a.h,a.m).getTime();if(ts>now+3000)out.push({id:a.id+':'+i,baseId:a.id,at:ts,title:a.l||'زنگ',h:a.h,m:a.m,days:a.days});if(!a.days.length)break}});return out}
 
 async function saveFile(name,text,mime){if(NATIVE){try{var w=await NP.Filesystem.writeFile({path:name,data:text,directory:'CACHE',encoding:'utf8'});await NP.Share.share({title:name,files:[w.uri],dialogTitle:'ذخیره یا اشتراک‌گذاری'});return true}catch(e){toast('ذخیرهٔ فایل ممکن نشد');return false}}
@@ -641,6 +713,7 @@ function openSet(keep){const y=keep?$('#sh').scrollTop:0,c=S.set,ns=NATIVE?(nPer
  <div class="sg">ظاهر</div><label>تم</label>${chips('s_theme',[['dark','تیره'],['light','روشن'],['auto','خودکار (مثل گوشی)']],c.theme)}<label>اندازهٔ نوشته‌ها</label>${chips('s_fs',[['s','کوچک'],['m','متوسط'],['l','بزرگ']],c.fs)}
  <div class="sg">صدا و لرزش هشدار</div>${sw('sound','صدای هشدار')}<label>صدای داخل برنامه</label>${chips('s_tone',[['classic','کلاسیک'],['soft','ملایم'],['urgent','تند و بلند']],c.tone)}
  <div class="hint" style="margin-top:8px">صداهای سیستم (آلارم/اعلان): ${NATIVE?(nNativeStatus&&nNativeStatus.alarmSound?'⏰ سفارشی':'⏰ پیش‌فرض')+' · '+(nNativeStatus&&nNativeStatus.notificationSound?'🔔 سفارشی':'🔔 پیش‌فرض'):'فقط در نسخهٔ اندروید'}</div>
+ <div class="hint" style="opacity:.7;font-size:11px">تشخیص: ${NATIVE?'✅ Native':'⛔ Web'} · پلاگین صدا: ${_ensurePlugin('DayFlowNative')?'✅':'⛔'} · پلتفرم: ${CAP&&CAP.getPlatform?CAP.getPlatform():'?'} · Capacitor: ${CAP?'✅':'⛔'}</div>
  <div class="two" style="margin-top:8px"><button class="btn g" onclick="pickPhoneSound('alarm')">⏰ انتخاب صدای آلارم</button><button class="btn g" onclick="pickPhoneSound('notification')">🔔 انتخاب صدای اعلان</button></div>
  <div class="hint">از لیست زنگ‌های گوشی انتخاب کن؛ این صدا بیرون از برنامه هم برای زنگ‌ها پخش می‌شود.</div>
  <div class="two" style="margin-top:6px"><button class="btn g" onclick="resetPhoneSound('alarm')">↩️ صدای آلارم پیش‌فرض</button><button class="btn g" onclick="resetPhoneSound('notification')">↩️ صدای اعلان پیش‌فرض</button></div>

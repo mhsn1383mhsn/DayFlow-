@@ -311,6 +311,13 @@ public class DayFlowNativePlugin extends Plugin {
 
     @PluginMethod public void init(PluginCall call) { ensureChannels(); call.resolve(statusObject()); }
     @PluginMethod public void status(PluginCall call) { ensureChannels(); call.resolve(statusObject()); }
+    @PluginMethod public void ping(PluginCall call) {
+        JSObject o = new JSObject();
+        o.put("ok", true);
+        o.put("plugin", "DayFlowNative");
+        o.put("version", 2);
+        call.resolve(o);
+    }
 
     @PluginMethod public void openNotificationSettings(PluginCall call) {
         try {
@@ -539,11 +546,9 @@ public class DayFlowBootReceiver extends BroadcastReceiver {
 }
 `);
 
-// ---- MainActivity: register plugins and respect light/dark system bars ----
+// ---- MainActivity: ALWAYS register custom plugins (must be before super.onCreate) ----
 const mainActivity = path.join(javaDir, 'MainActivity.java');
-let ma = fs.existsSync(mainActivity) ? fs.readFileSync(mainActivity, 'utf8') : `package ${pkg};\n\nimport com.getcapacitor.BridgeActivity;\n\npublic class MainActivity extends BridgeActivity {}\n`;
-if (!ma.includes('registerPlugin(DayFlowCalendarPlugin.class)')) {
-  ma = `package ${pkg};
+const ma = `package ${pkg};
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
@@ -557,7 +562,6 @@ public class MainActivity extends BridgeActivity {
     }
 }
 `;
-}
 fs.writeFileSync(mainActivity, ma);
 
 console.log('patch-android: OK');
