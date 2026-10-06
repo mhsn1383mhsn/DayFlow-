@@ -1,0 +1,129 @@
+name: Build Android APK - Reliable
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # IMPORTANT:
+      # Do NOT enable setup-node caching here. Caching requires a lockfile
+      # (package-lock.json/yarn.lock/pnpm-lock.yaml), while this project
+      # intentionally installs from package.json.
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          check-latest: false
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Install npm dependencies
+        shell: bash
+        run: |
+          npm install --no-package-lock --no-audit --no-fund
+
+      - name: Verify Capacitor CLI
+        shell: bash
+        run: |
+          npx cap --version
+
+      - name: Create Android project
+        shell: bash
+        run: |
+          rm -rf android
+          npx cap add android
+
+      - name: Bundle Firebase web SDK
+        shell: bash
+        run: |
+          node scripts/copy-vendor.js
+
+      - name: Configure Firebase
+        shell: bash
+        run: |
+          mkdir -p android/app
+          cp firebase/google-services.json android/app/google-services.json
+          test -f android/app/google-services.json
+          # @capacitor-firebase/authentication needs minSdk 23
+          sed -i -E 's/minSdkVersion = [0-9]+/minSdkVersion = 23/' android/variables.gradle
+          grep -n minSdkVersion android/variables.gradle
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/build.gradle")
+          s = p.read_text()
+          if "com.google.gms:google-services" not in s:
+              s += "\n\n// Firebase Google Services plugin\ndependencies {\n    classpath 'com.google.gms:google-services:4.4.4'\n}\n"
+              p.write_text(s)
+
+          p = Path("android/app/build.gradle")
+          s = p.read_text()
+          if "com.google.gms.google-services" not in s:
+              s += "\n\napply plugin: 'com.google.gms.google-services'\n"
+              p.write_text(s)
+
+          # Make sure Google Sign-In library is really packaged in the APK
+          s = p.read_text()
+          if "play-services-auth" not in s:
+              s += "\n\ndependencies {\n    implementation 'com.google.android.gms:play-services-auth:20.7.0'\n}\n"
+              p.write_text(s)
+          PY
+
+      - name: Patch Android native features
+        shell: bash
+        run: |
+          node scripts/patch-android.js
+
+      - name: Generate app icons
+        shell: bash
+        run: |
+          npx capacitor-assets generate --android
+
+      - name: Sync web files
+        shell: bash
+        run: |
+          npx cap sync android
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        working-directory: android
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew clean assembleDebug --no-daemon --stacktrace
+
+      - name: Upload build reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports
+          path: |
+            android/app/build/reports
+            android/app/src/main/java
+          if-no-files-found: ignore
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DayFlow-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
