@@ -233,9 +233,7 @@ mark{background:rgba(255,176,32,.35);color:inherit;border-radius:4px;padding:0 2
   <button class="mute" id="al_mu" onclick="alAct('mute')">🔇 بی‌صدا کن (هشدار می‌ماند)</button><div class="alr" id="al_more"></div>
 </div></div>
 <div class="toast" id="toast"></div>
-<script src="vendor/firebase-app-compat.js"></script>
-<script src="vendor/firebase-auth-compat.js"></script>
-<script src="vendor/firebase-firestore-compat.js"></script>
+<script src="vendor/supabase.js"></script>
 <script>
 /* ===== Android bridge (Capacitor) — در مرورگر غیرفعال است ===== */
 var nNativeStatus=null;var CAP=window.Capacitor||null,NP={},nPerm='prompt',nTm=0;
@@ -267,7 +265,7 @@ function _ensurePlugin(name){
 }
 var NATIVE=_detectNative();
 if(NATIVE){
-  ['LocalNotifications','App','Filesystem','Share','StatusBar','DayFlowCalendar','DayFlowNative','FirebaseAuthentication'].forEach(function(n){
+  ['LocalNotifications','App','Filesystem','Share','StatusBar','DayFlowCalendar','DayFlowNative'].forEach(function(n){
     _ensurePlugin(n);
   });
 }
@@ -401,7 +399,7 @@ Object.keys(S.tasks).forEach(k=>S.tasks[k].forEach(t=>{if(!t.pre){t.pre=t.b?[0]:
 S.rem.forEach(r=>{r.pre=r.pre||[];r.pf=r.pf||[];r.rep=r.rep||'none';r.jd=r.jd||jp(new Date(r.at)).d});
 S.alarms.forEach(a=>{if(!a.days)a.days=[0,1,2,3,4,5,6];if(a.snz===undefined)a.snz=true;a.last=a.last||''});
 let cSer=(()=>{const o=Object.assign({},S);delete o.mt;return JSON.stringify(o)})();
-let lastSigT=0;const save=()=>{lastSigT=0;try{const o=Object.assign({},S);delete o.mt;const ser=JSON.stringify(o);if(ser!==cSer){cSer=ser;S.mt=Date.now()}if(CU)S.uid=CU.uid;localStorage.setItem('planner_v1',JSON.stringify(S))}catch(e){}trigSync();if(CU)cloudPush()};
+let lastSigT=0;const save=()=>{lastSigT=0;try{const o=Object.assign({},S);delete o.mt;const ser=JSON.stringify(o);if(ser!==cSer){cSer=ser;S.mt=Date.now()}if(CU)S.uid=CU.id;localStorage.setItem('planner_v1',JSON.stringify(S))}catch(e){}trigSync();if(CU)cloudPush()};
 let cur=sd(new Date()),tab='day',mon=sd(new Date()),uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6),dirty=false,swReg=null;
 const T0={left:0,run:false,end:0,total:0};let T=S.timer&&S.timer.run?S.timer:Object.assign({},T0);
 
@@ -771,8 +769,8 @@ function openSet(keep){const y=keep?$('#sh').scrollTop:0,c=S.set,ns=NATIVE?(nPer
 function stg(k,v){S.set[k]=v;save();applyTheme();wake();openSet(1)}
 function testAlert(){closeS();push({kind:'test',title:'این یک هشدار آزمایشی است',note:'اگر صدا و لرزش را دریافت کردی، همه‌چیز آماده است.',due:Date.now()});askNotif();ringTick(Date.now())}
 function exportData(){saveFile('planner-backup-'+key(new Date())+'.json',JSON.stringify(S),'application/json')}
-function importData(i){const f=i.files[0];if(!f)return;if(!confirm('همهٔ اطلاعات فعلی با این فایل پشتیبان جایگزین شود؟')){i.value='';return}const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d.tasks!=='object')throw 0;d.mt=Date.now();if(CU)d.uid=CU.uid;else delete d.uid;localStorage.setItem('planner_v1',JSON.stringify(d));location.reload()}catch(e){toast('فایل پشتیبان معتبر نیست')}};r.readAsText(f)}
-function wipe(){if(confirm('همهٔ کارها، یادداشت‌ها، یادآوری‌ها و زنگ‌ها پاک شود؟'+(CU?' (نسخهٔ ذخیره‌شده در حساب گوگل هم پاک می‌شود)':'')+' این کار برگشت ندارد.')){(async()=>{try{if(CU&&cDB)await cRef().delete()}catch(e){toast('پاک‌کردن نسخهٔ حساب ممکن نشد؛ اینترنت را بررسی کن');return}localStorage.removeItem('planner_v1');location.reload()})()}}
+function importData(i){const f=i.files[0];if(!f)return;if(!confirm('همهٔ اطلاعات فعلی با این فایل پشتیبان جایگزین شود؟')){i.value='';return}const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d.tasks!=='object')throw 0;d.mt=Date.now();if(CU)d.uid=CU.id;else delete d.uid;localStorage.setItem('planner_v1',JSON.stringify(d));location.reload()}catch(e){toast('فایل پشتیبان معتبر نیست')}};r.readAsText(f)}
+function wipe(){if(confirm('همهٔ کارها، یادداشت‌ها، یادآوری‌ها و زنگ‌ها پاک شود؟'+(CU?' (نسخهٔ ذخیره‌شده در حساب هم پاک می‌شود)':'')+' این کار برگشت ندارد.')){(async()=>{try{if(CU&&sb){const {error}=await sb.from('user_data').delete().eq('user_id',CU.id);if(error)throw error}}catch(e){toast('پاک‌کردن نسخهٔ حساب ممکن نشد؛ اینترنت را بررسی کن');return}localStorage.removeItem('planner_v1');location.reload()})()}}
 
 /* ---------- wake lock ---------- */
 let WL=null;async function wake(){try{const want=(S.set.wake||T.run)&&!document.hidden;if(want&&'wakeLock' in navigator&&!WL){WL=await navigator.wakeLock.request('screen');WL.addEventListener('release',()=>WL=null)}else if(!want&&WL){await WL.release();WL=null}}catch(e){}}
@@ -801,34 +799,46 @@ function tick(){const now=Date.now();sched(now);ringTick(now);updClock();bnRende
  else if(tab==='rem'&&new Date().getSeconds()===0&&!$('#ov').classList.contains('on'))render(1)}
 function startTicker(){try{const w=new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},1000)'],{type:'text/javascript'})));w.onmessage=tick}catch(e){setInterval(tick,1000)}}
 
-/* ===== حساب گوگل + همگام‌سازی ابری (Firebase Auth + Firestore) ===== */
-const FB_CFG={apiKey:'AIzaSyCsgZyuRHDzpG8gKduDHW14LhwqvQcsXAY',authDomain:'dayflow-2f339.firebaseapp.com',projectId:'dayflow-2f339',appId:'1:616628450687:android:683cc3e1e35dc0d542964a'};
-var CU=null,cAuth=null,cDB=null,cUpT=0,cBusy=false,cMsg='';
+/* ===== حساب گوگل + همگام‌سازی ابری (Supabase Auth + user_data) ===== */
+const SB_URL  = 'https://zgpzchtmimwrknmfewqt.supabase.co';
+const SB_ANON = 'sb_publishable_leo_QKeaqWVgEw8cUS0eEw_dRDMwuY7';
+var CU=null, sb=null, cUpT=0, cBusy=false, cMsg='';
 const hasData=d=>{try{return !!d&&(Object.values(d.tasks||{}).some(a=>a&&a.length)||Object.values(d.notes||{}).some(v=>v)||(d.rem||[]).length>0||(d.alarms||[]).length>0||(d.routines||[]).length>0)}catch(e){return false}};
-const cRef=()=>cDB.collection('users').doc(CU.uid);
 function cloudInit(){
- if(typeof firebase==='undefined'){return}
+ if(typeof supabase==='undefined'||!supabase.createClient){console.warn('supabase sdk missing');return}
+ if(!SB_ANON||SB_ANON.indexOf('PASTE_')===0){console.warn('Supabase anon key not set');return}
  try{
-  firebase.initializeApp(FB_CFG);cAuth=firebase.auth();cDB=firebase.firestore();
-  try{cDB.settings({experimentalAutoDetectLongPolling:true,merge:true})}catch(e){}
-  cAuth.onAuthStateChanged(u=>{CU=u||null;if(CU)cloudStart();else if(setOpen)openSet(1)});
- }catch(e){console.warn('firebase init',e)}
+  sb=supabase.createClient(SB_URL,SB_ANON,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  sb.auth.getSession().then(function(r){
+   CU=(r&&r.data&&r.data.session&&r.data.session.user)||null;
+   if(CU)cloudStart();else if(setOpen)openSet(1);
+  }).catch(function(e){console.warn('getSession',e)});
+  sb.auth.onAuthStateChange(function(ev,session){
+   CU=(session&&session.user)||null;
+   if(CU)cloudStart();else if(setOpen)openSet(1);
+  });
+ }catch(e){console.warn('supabase init',e)}
 }
-function cloudApply(d,mt){d.uid=CU.uid;d.mt=mt;localStorage.setItem('planner_v1',JSON.stringify(d));location.reload()}
+function cloudApply(d,mt){d.uid=CU.id;d.mt=mt;localStorage.setItem('planner_v1',JSON.stringify(d));location.reload()}
 async function cloudPush(now){
- if(!CU||!cDB)return;clearTimeout(cUpT);cUpT=0;
- const go=async()=>{cUpT=0;try{S.uid=CU.uid;if(!S.mt)S.mt=Date.now();const js=JSON.stringify(S);localStorage.setItem('planner_v1',js);await cRef().set({data:js,mt:S.mt});cMsg=''}catch(e){cMsg='⚠️ همگام‌سازی انجام نشد (اینترنت؟)'}};
+ if(!CU||!sb)return;clearTimeout(cUpT);cUpT=0;
+ const go=async()=>{cUpT=0;try{
+  S.uid=CU.id;if(!S.mt)S.mt=Date.now();const js=JSON.stringify(S);localStorage.setItem('planner_v1',js);
+  const {error}=await sb.from('user_data').upsert({user_id:CU.id,data:js,mt:S.mt,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(error)throw error;cMsg='';
+ }catch(e){console.warn('cloudPush',e);cMsg='⚠️ همگام‌سازی انجام نشد (اینترنت؟)'}};
  if(now)return go();cUpT=setTimeout(go,1500)
 }
 async function cloudStart(){
- if(!CU||!cDB||cBusy)return;cBusy=true;
+ if(!CU||!sb||cBusy)return;cBusy=true;
  try{
   if(cUpT){await cloudPush(true)}
-  const snap=await cRef().get();const cl=snap.exists?snap.data():null;
+  const {data:cl,error}=await sb.from('user_data').select('data,mt').eq('user_id',CU.id).maybeSingle();
+  if(error)throw error;
   if(!cl){await cloudPush(true)}
   else{
    const cd=JSON.parse(cl.data),lo=S,cm=cl.mt||0,lm=lo.mt||0;
-   if((lo.uid&&lo.uid!==CU.uid)||!hasData(lo)){cBusy=false;return cloudApply(cd,cm)}
+   if((lo.uid&&lo.uid!==CU.id)||!hasData(lo)){cBusy=false;return cloudApply(cd,cm)}
    if(!lo.uid&&!hasData(cd)){S.mt=Date.now();await cloudPush(true)}
    else if(!lo.uid){
     if(confirm('این حساب از قبل اطلاعات دارد.\n\nتأیید = اطلاعات حساب روی این گوشی بارگذاری شود (اطلاعات فعلی گوشی جایگزین می‌شود)\nانصراف = اطلاعات فعلی گوشی جایگزین اطلاعات حساب شود')){cBusy=false;return cloudApply(cd,cm)}
@@ -837,40 +847,35 @@ async function cloudStart(){
    else if(lm>cm){await cloudPush(true)}
    else{cMsg=''}
   }
- }catch(e){cMsg='⚠️ همگام‌سازی انجام نشد (اینترنت؟)'}
+ }catch(e){console.warn('cloudStart',e);cMsg='⚠️ همگام‌سازی انجام نشد (اینترنت؟)'}
  cBusy=false;if(setOpen)openSet(1)
 }
 async function cloudSyncNow(){await cloudStart();toast(cMsg||'همگام شد ✅')}
-function fbPlug(){
- var p=NP.FirebaseAuthentication;
- if(!p&&CAP){try{p=CAP.registerPlugin('FirebaseAuthentication')}catch(e){}}
- if(!p&&CAP&&CAP.Plugins)p=CAP.Plugins.FirebaseAuthentication;
- return p
-}
 async function gLogin(){
- if(!cAuth){toast('سرویس ورود بارگذاری نشد');return}
+ if(!sb){toast('سرویس ورود بارگذاری نشد — کلید Supabase را در index.html تنظیم کن');return}
  try{
-  if(NATIVE){
-   const FA=fbPlug();
-   if(!FA)throw new Error('پلاگین بومی ورود پیدا نشد. پلاگین‌های نصب‌شده: '+((CAP&&CAP.PluginHeaders)||[]).map(function(h){return h.name}).join(','));
-   const r=await FA.signInWithGoogle({skipNativeAuth:true});
-   const t=r&&r.credential&&r.credential.idToken;if(!t)throw new Error('no idToken');
-   await cAuth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(t));
-  }else{await cAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider())}
+  const redirectTo=location.href.split('#')[0];
+  const {error}=await sb.auth.signInWithOAuth({
+   provider:'google',
+   options:{redirectTo:redirectTo,queryParams:{access_type:'offline',prompt:'select_account'}}
+  });
+  if(error)throw error;
  }catch(e){const m=String((e&&e.message)||e);if(!/cancel|closed|12501/i.test(m))toast('ورود ناموفق: '+m.slice(0,260),9000)}
 }
 async function gLogout(){
- if(!confirm('از حساب خارج می‌شوی؟\nاطلاعات در حساب گوگلت می‌ماند و از روی این گوشی پاک می‌شود.'))return;
+ if(!confirm('از حساب خارج می‌شوی؟\nاطلاعات در حسابت می‌ماند و از روی این گوشی پاک می‌شود.'))return;
  await cloudPush(true);
  if(cMsg&&!confirm('آخرین تغییرات هنوز به حساب ارسال نشده و با خروج از بین می‌رود. ادامه می‌دهی؟'))return;
- try{if(NATIVE){var FA=fbPlug();if(FA)await FA.signOut()}}catch(e){}
- try{await cAuth.signOut()}catch(e){}
+ try{await sb.auth.signOut()}catch(e){}
  localStorage.removeItem('planner_v1');location.reload()
 }
 function acctHtml(){
- if(!cAuth)return `<div class="sg">حساب کاربری</div><div class="hint">⛔ سرویس ورود با گوگل بارگذاری نشده است. این نسخه باید با Workflow جدید (که فایل‌های Firebase را داخل www/vendor می‌گذارد) ساخته شود؛ اگر index.html را مستقیم یا با بیلد قدیمی باز کرده‌ای، این بخش کار نمی‌کند.</div>`;
- if(CU)return `<div class="sg">حساب کاربری</div><div class="row"><div class="i"><b>${esc(CU.displayName||'حساب گوگل')}</b><small dir="ltr" style="text-align:right">${esc(CU.email||'')}</small><small>${cMsg||'✅ اطلاعات به این حساب لینک است و همگام می‌شود'}</small></div></div><div class="two" style="gap:8px;margin-top:6px"><button class="btn g" style="font-size:12px;flex:1" onclick="cloudSyncNow()">🔄 همگام‌سازی</button><button class="btn r" style="font-size:12px;flex:1" onclick="gLogout()">خروج از حساب</button></div>`;
- return `<div class="sg">حساب کاربری</div><div class="hint">با ورود به حساب گوگل، اطلاعات به حساب تو لینک می‌شود و روی هر گوشی دیگر هم با همان حساب در دسترس است.</div><button class="btn" style="width:100%;margin-top:6px" onclick="gLogin()">ورود با گوگل</button>`}
+ if(!sb)return `<div class="sg">حساب کاربری</div><div class="hint">⛔ سرویس ورود بارگذاری نشده است. کلید Supabase (SB_ANON) را در index.html بگذار و جدول user_data را طبق SUPABASE-FA.md بساز. سپس با Workflow جدید APK بگیر.</div>`;
+ const name=(CU&&(CU.user_metadata&&(CU.user_metadata.full_name||CU.user_metadata.name)))||(CU&&CU.email)||'حساب گوگل';
+ const email=(CU&&CU.email)||'';
+ if(CU)return `<div class="sg">حساب کاربری</div><div class="row"><div class="i"><b>${esc(name)}</b><small dir="ltr" style="text-align:right">${esc(email)}</small><small>${cMsg||'✅ اطلاعات به این حساب لینک است و همگام می‌شود'}</small></div></div><div class="two" style="gap:8px;margin-top:6px"><button class="btn g" style="font-size:12px;flex:1" onclick="cloudSyncNow()">🔄 همگام‌سازی</button><button class="btn r" style="font-size:12px;flex:1" onclick="gLogout()">خروج از حساب</button></div>`;
+ return `<div class="sg">حساب کاربری</div><div class="hint">با ورود به حساب گوگل، اطلاعات به حساب تو لینک می‌شود و روی هر گوشی دیگر هم با همان حساب در دسترس است.</div><button class="btn" style="width:100%;margin-top:6px" onclick="gLogin()">ورود با گوگل</button>`
+}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&CU)cloudStart()});
 window.addEventListener('online',()=>{if(CU)cloudStart()});
 applyTheme();render();tick();startTicker();wake();cloudInit();
