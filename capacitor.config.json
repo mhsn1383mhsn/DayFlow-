@@ -12,12 +12,6 @@
     "LocalNotifications": {
       "smallIcon": "ic_stat_dayflow",
       "iconColor": "#178BFF"
-    },
-    "FirebaseAuthentication": {
-      "skipNativeAuth": true,
-      "providers": [
-        "google.com"
-      ]
     }
   }
 }

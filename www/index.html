@@ -851,15 +851,64 @@ async function cloudStart(){
  cBusy=false;if(setOpen)openSet(1)
 }
 async function cloudSyncNow(){await cloudStart();toast(cMsg||'همگام شد ✅')}
+const OAUTH_REDIRECT='app.dayflow.planner://login-callback';
+async function handleOAuthUrl(url){
+ if(!sb||!url||url.indexOf('login-callback')<0)return;
+ try{
+  // PKCE: ?code=
+  var code=null;
+  try{
+   var u=new URL(url.replace(/^[^:]+:\/\//,'https://x/'));
+   code=u.searchParams.get('code');
+  }catch(e){}
+  if(!code&&url.indexOf('code=')>=0){
+   var m=url.match(/[?&#]code=([^&#]+)/);if(m)code=decodeURIComponent(m[1]);
+  }
+  if(code){
+   var r=await sb.auth.exchangeCodeForSession(code);
+   if(r.error)throw r.error;
+   toast('ورود موفق ✅');return;
+  }
+  // Implicit / hash tokens
+  if(url.indexOf('access_token')>=0||url.indexOf('#')>=0){
+   var hash=url.split('#')[1]||'';
+   if(hash){
+    var params=new URLSearchParams(hash);
+    var at=params.get('access_token'),rt=params.get('refresh_token');
+    if(at&&rt){
+     var r2=await sb.auth.setSession({access_token:at,refresh_token:rt});
+     if(r2.error)throw r2.error;
+     toast('ورود موفق ✅');return;
+    }
+   }
+  }
+ }catch(e){toast('ورود ناموفق: '+String((e&&e.message)||e).slice(0,200),8000)}
+}
+function wireOAuthDeepLink(){
+ try{
+  if(!NATIVE)return;
+  var App=NP.App||_ensurePlugin('App');
+  if(!App||!App.addListener)return;
+  App.addListener('appUrlOpen',function(ev){handleOAuthUrl(ev&&ev.url)});
+  // cold start
+  if(App.getLaunchUrl){
+   App.getLaunchUrl().then(function(res){if(res&&res.url)handleOAuthUrl(res.url)}).catch(function(){});
+  }
+ }catch(e){}
+}
 async function gLogin(){
  if(!sb){toast('سرویس ورود بارگذاری نشد — کلید Supabase را در index.html تنظیم کن');return}
  try{
-  const redirectTo=location.href.split('#')[0];
-  const {error}=await sb.auth.signInWithOAuth({
+  var redirectTo=NATIVE?OAUTH_REDIRECT:(location.href.split('#')[0]);
+  var {data,error}=await sb.auth.signInWithOAuth({
    provider:'google',
-   options:{redirectTo:redirectTo,queryParams:{access_type:'offline',prompt:'select_account'}}
+   options:{redirectTo:redirectTo,skipBrowserRedirect:!!NATIVE,queryParams:{access_type:'offline',prompt:'select_account'}}
   });
   if(error)throw error;
+  if(NATIVE&&data&&data.url){
+   // باز کردن صفحه گوگل در مرورگر سیستم تا بعد از ورود به اپ برگردد
+   window.location.href=data.url;
+  }
  }catch(e){const m=String((e&&e.message)||e);if(!/cancel|closed|12501/i.test(m))toast('ورود ناموفق: '+m.slice(0,260),9000)}
 }
 async function gLogout(){
