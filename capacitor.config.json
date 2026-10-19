@@ -12,6 +12,14 @@
     "LocalNotifications": {
       "smallIcon": "ic_stat_dayflow",
       "iconColor": "#178BFF"
+    },
+    "GoogleAuth": {
+      "scopes": [
+        "profile",
+        "email"
+      ],
+      "serverClientId": "616628450687-jvu3gqt6e013tk1uf8o0q7r2i863lse4.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
     }
   }
 }
