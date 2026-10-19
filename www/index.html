@@ -851,14 +851,15 @@ async function cloudStart(){
  cBusy=false;if(setOpen)openSet(1)
 }
 async function cloudSyncNow(){await cloudStart();toast(cMsg||'همگام شد ✅')}
-const OAUTH_REDIRECT='app.dayflow.planner://login-callback';
+const OAUTH_REDIRECT_NATIVE='https://localhost/login-callback';
+const OAUTH_REDIRECT_DEEP='app.dayflow.planner://login-callback';
 async function handleOAuthUrl(url){
- if(!sb||!url||url.indexOf('login-callback')<0)return;
+ if(!sb||!url)return;
+ if(url.indexOf('login-callback')<0&&url.indexOf('access_token')<0&&url.indexOf('code=')<0)return;
  try{
-  // PKCE: ?code=
   var code=null;
   try{
-   var u=new URL(url.replace(/^[^:]+:\/\//,'https://x/'));
+   var u=new URL(url.replace(/^([a-z0-9.+-]+):\/\//i,'https://x/'));
    code=u.searchParams.get('code');
   }catch(e){}
   if(!code&&url.indexOf('code=')>=0){
@@ -868,9 +869,10 @@ async function handleOAuthUrl(url){
    var r=await sb.auth.exchangeCodeForSession(code);
    if(r.error)throw r.error;
    try{var Br=NP.Browser||_ensurePlugin('Browser');if(Br&&Br.close)await Br.close()}catch(e){}
-   toast('ورود موفق ✅');return;
+   toast('ورود موفق ✅');
+   if(setOpen)openSet(1);
+   return;
   }
-  // Implicit / hash tokens
   if(url.indexOf('access_token')>=0||url.indexOf('#')>=0){
    var hash=url.split('#')[1]||'';
    if(hash){
@@ -879,20 +881,30 @@ async function handleOAuthUrl(url){
     if(at&&rt){
      var r2=await sb.auth.setSession({access_token:at,refresh_token:rt});
      if(r2.error)throw r2.error;
-     try{var Br=NP.Browser||_ensurePlugin('Browser');if(Br&&Br.close)await Br.close()}catch(e){}
-     toast('ورود موفق ✅');return;
+     try{var Br2=NP.Browser||_ensurePlugin('Browser');if(Br2&&Br2.close)await Br2.close()}catch(e){}
+     toast('ورود موفق ✅');
+     if(setOpen)openSet(1);
+     return;
     }
    }
   }
+  // fallback: let supabase parse current location
+  try{
+   var s=await sb.auth.getSession();
+   if(s&&s.data&&s.data.session){toast('ورود موفق ✅');if(setOpen)openSet(1)}
+  }catch(e){}
  }catch(e){toast('ورود ناموفق: '+String((e&&e.message)||e).slice(0,200),8000)}
 }
 function wireOAuthDeepLink(){
  try{
+  // handle return to https://localhost/login-callback inside WebView
+  if(/login-callback|access_token=|code=/.test(location.href)){
+   handleOAuthUrl(location.href);
+  }
   if(!NATIVE)return;
   var App=NP.App||_ensurePlugin('App');
   if(!App||!App.addListener)return;
   App.addListener('appUrlOpen',function(ev){handleOAuthUrl(ev&&ev.url)});
-  // cold start
   if(App.getLaunchUrl){
    App.getLaunchUrl().then(function(res){if(res&&res.url)handleOAuthUrl(res.url)}).catch(function(){});
   }
@@ -901,21 +913,17 @@ function wireOAuthDeepLink(){
 async function gLogin(){
  if(!sb){toast('سرویس ورود بارگذاری نشد — کلید Supabase را در index.html تنظیم کن');return}
  try{
-  var redirectTo=NATIVE?OAUTH_REDIRECT:(location.href.split('#')[0]);
+  // Capacitor WebView origin is https://localhost — keep OAuth inside the WebView
+  var redirectTo=NATIVE?OAUTH_REDIRECT_NATIVE:(location.origin+location.pathname);
   var {data,error}=await sb.auth.signInWithOAuth({
    provider:'google',
-   options:{redirectTo:redirectTo,skipBrowserRedirect:!!NATIVE,queryParams:{access_type:'offline',prompt:'select_account'}}
+   options:{
+    redirectTo:redirectTo,
+    skipBrowserRedirect:false,
+    queryParams:{access_type:'offline',prompt:'select_account'}
+   }
   });
   if(error)throw error;
-  if(NATIVE&&data&&data.url){
-   var Br=NP.Browser||_ensurePlugin('Browser');
-   if(Br&&Br.open){
-    await Br.open({url:data.url,windowName:'_blank'});
-   }else{
-    // fallback: intent به مرورگر خارجی
-    window.open(data.url,'_system')||(window.location.href=data.url);
-   }
-  }
  }catch(e){const m=String((e&&e.message)||e);if(!/cancel|closed|12501/i.test(m))toast('ورود ناموفق: '+m.slice(0,260),9000)}
 }
 async function gLogout(){
