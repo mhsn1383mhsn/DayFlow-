@@ -265,7 +265,7 @@ function _ensurePlugin(name){
 }
 var NATIVE=_detectNative();
 if(NATIVE){
-  ['LocalNotifications','App','Filesystem','Share','StatusBar','DayFlowCalendar','DayFlowNative'].forEach(function(n){
+  ['LocalNotifications','App','Browser','Filesystem','Share','StatusBar','DayFlowCalendar','DayFlowNative'].forEach(function(n){
     _ensurePlugin(n);
   });
 }
@@ -867,6 +867,7 @@ async function handleOAuthUrl(url){
   if(code){
    var r=await sb.auth.exchangeCodeForSession(code);
    if(r.error)throw r.error;
+   try{var Br=NP.Browser||_ensurePlugin('Browser');if(Br&&Br.close)await Br.close()}catch(e){}
    toast('ورود موفق ✅');return;
   }
   // Implicit / hash tokens
@@ -878,6 +879,7 @@ async function handleOAuthUrl(url){
     if(at&&rt){
      var r2=await sb.auth.setSession({access_token:at,refresh_token:rt});
      if(r2.error)throw r2.error;
+     try{var Br=NP.Browser||_ensurePlugin('Browser');if(Br&&Br.close)await Br.close()}catch(e){}
      toast('ورود موفق ✅');return;
     }
    }
@@ -906,8 +908,13 @@ async function gLogin(){
   });
   if(error)throw error;
   if(NATIVE&&data&&data.url){
-   // باز کردن صفحه گوگل در مرورگر سیستم تا بعد از ورود به اپ برگردد
-   window.location.href=data.url;
+   var Br=NP.Browser||_ensurePlugin('Browser');
+   if(Br&&Br.open){
+    await Br.open({url:data.url,windowName:'_blank'});
+   }else{
+    // fallback: intent به مرورگر خارجی
+    window.open(data.url,'_system')||(window.location.href=data.url);
+   }
   }
  }catch(e){const m=String((e&&e.message)||e);if(!/cancel|closed|12501/i.test(m))toast('ورود ناموفق: '+m.slice(0,260),9000)}
 }
