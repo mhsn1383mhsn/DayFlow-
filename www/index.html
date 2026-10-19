@@ -851,16 +851,49 @@ async function cloudStart(){
  cBusy=false;if(setOpen)openSet(1)
 }
 async function cloudSyncNow(){await cloudStart();toast(cMsg||'همگام شد ✅')}
+const GOOGLE_WEB_CLIENT_ID='616628450687-jvu3gqt6e013tk1uf8o0q7r2i863lse4.apps.googleusercontent.com';
+function errText(e){
+ try{
+  if(!e)return 'unknown';
+  if(typeof e==='string')return e;
+  var parts=[];
+  if(e.message)parts.push(e.message);
+  if(e.errorMessage)parts.push(e.errorMessage);
+  if(e.code!=null)parts.push('code='+e.code);
+  if(e.error&&e.error.message)parts.push(e.error.message);
+  if(e.error&&e.error.code)parts.push(e.error.code);
+  try{var j=JSON.stringify(e);if(j&&j!=='{}')parts.push(j.slice(0,180))}catch(x){}
+  return parts.filter(Boolean).join(' | ')||String(e);
+ }catch(x){return String(e)}
+}
 async function gLogin(){
  if(!sb){toast('سرویس ورود بارگذاری نشد — کلید Supabase را در index.html تنظیم کن');return}
  try{
   if(NATIVE){
    var GA=NP.GoogleAuth||_ensurePlugin('GoogleAuth');
-   if(!GA)throw new Error('پلاگین GoogleAuth پیدا نشد — APK را دوباره بساز');
-   try{if(GA.initialize)await GA.initialize()}catch(e){}
+   if(!GA){
+    var names=((CAP&&CAP.PluginHeaders)||[]).map(function(h){return h.name}).join(',');
+    throw new Error('پلاگین GoogleAuth نیست. پلاگین‌ها: '+names);
+   }
+   try{
+    if(GA.initialize){
+     await GA.initialize({
+      clientId:GOOGLE_WEB_CLIENT_ID,
+      serverClientId:GOOGLE_WEB_CLIENT_ID,
+      scopes:['profile','email'],
+      grantOfflineAccess:true
+     });
+    }
+   }catch(ie){console.warn('GoogleAuth.initialize',ie)}
    var gu=await GA.signIn();
-   var idToken=(gu&&gu.authentication&&gu.authentication.idToken)||(gu&&gu.idToken)||null;
-   if(!idToken)throw new Error('idToken از گوگل دریافت نشد');
+   console.log('google user',gu);
+   var idToken=(gu&&gu.authentication&&gu.authentication.idToken)
+    ||(gu&&gu.idToken)
+    ||(gu&&gu.serverAuthCode?null:null)
+    ||null;
+   if(!idToken){
+    throw new Error('idToken خالی. keys='+(gu?Object.keys(gu).join(','):'null')+' auth='+(gu&&gu.authentication?Object.keys(gu.authentication).join(','):'-'));
+   }
    var r=await sb.auth.signInWithIdToken({provider:'google',token:idToken});
    if(r.error)throw r.error;
    toast('ورود موفق ✅');
@@ -874,9 +907,9 @@ async function gLogin(){
    if(error)throw error;
   }
  }catch(e){
-  var msg=String((e&&(e.message||e.errorMessage))||e||'');
-  if(/cancel|closed|12501|popup_closed|sign_in_canceled/i.test(msg))return;
-  toast('ورود ناموفق: '+msg.slice(0,260),9000);
+  var msg=errText(e);
+  if(/cancel|closed|12501|popup_closed|sign_in_canceled|user.*cancel/i.test(msg))return;
+  toast('ورود ناموفق: '+msg.slice(0,320),12000);
  }
 }
 function wireOAuthDeepLink(){/* native Google — no browser redirect needed */}
